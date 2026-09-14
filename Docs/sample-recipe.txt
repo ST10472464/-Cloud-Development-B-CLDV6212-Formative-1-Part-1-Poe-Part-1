@@ -1,0 +1,10 @@
+Barista Recipe: Espresso
+========================
+
+1. Use 18g of finely ground coffee
+2. Pull shot for 25 seconds at 9 bars pressure
+3. Target yield: 36ml in the cup
+4. Crema should be golden-brown and persistent
+
+Storage: Keep beans in airtight container at room temperature.
+Grind fresh for each shot.
