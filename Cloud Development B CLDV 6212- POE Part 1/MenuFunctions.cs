@@ -52,7 +52,7 @@ namespace CoffeeNChill.Functions
             }
 
             // Microsoft Learn - Azure Tables client library
-            // https://learn.microsoft.com/en-us/azure/storage/tables/table-storage-how-to-use-dotnet
+            // https://learn.microsoft.com/en-us/dotnet/api/overview/azure/data.tables-readme?view=azure-dotnet
             try
             {
                 var tableClient = new TableClient(_connectionString, TableName);
@@ -74,7 +74,7 @@ namespace CoffeeNChill.Functions
         }
 
         // Microsoft Learn - QueryAsync
-        // https://learn.microsoft.com/en-us/azure/storage/tables/table-storage-how-to-use-dotnet
+        // https://learn.microsoft.com/en-us/dotnet/api/azure.data.tables.tableclient.queryasync?view=azure-dotnet
         [Function("GetAllMenuItems")]
         public async Task<HttpResponseData> GetAllMenuItems(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "menu")] HttpRequestData req)
@@ -96,7 +96,7 @@ namespace CoffeeNChill.Functions
         }
 
         // Microsoft Learn - Query with filter
-        // https://learn.microsoft.com/en-us/azure/storage/tables/table-storage-how-to-use-dotnet
+        // https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-http-webhook-trigger?tabs=python-v2%2Cisolated-process%2Cnodejs-v4%2Cfunctionsv2&pivots=programming-language-csharp
         [Function("GetMenuItemsByCategory")]
         public async Task<HttpResponseData> GetMenuItemsByCategory(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "menu/category/{category}")] HttpRequestData req,
@@ -121,7 +121,7 @@ namespace CoffeeNChill.Functions
         }
 
         // Microsoft Learn - UpdateEntityAsync
-        // https://learn.microsoft.com/en-us/azure/storage/tables/table-storage-how-to-use-dotnet
+        // https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-http-webhook-trigger?tabs=python-v2%2Cisolated-process%2Cnodejs-v4%2Cfunctionsv2&pivots=programming-language-csharp
         [Function("UpdateMenuItem")]
         public async Task<HttpResponseData> UpdateMenuItem(
             [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "menu/{category}/{id}")] HttpRequestData req,
@@ -174,7 +174,7 @@ namespace CoffeeNChill.Functions
         }
 
         // Microsoft Learn - DeleteEntityAsync
-        // https://learn.microsoft.com/en-us/azure/storage/tables/table-storage-how-to-use-dotnet
+        // https://learn.microsoft.com/en-us/dotnet/api/azure.data.tables.tableclient.deleteentityasync?view=azure-dotnet
         [Function("DeleteMenuItem")]
         public async Task<HttpResponseData> DeleteMenuItem(
             [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "menu/{category}/{id}")] HttpRequestData req,
