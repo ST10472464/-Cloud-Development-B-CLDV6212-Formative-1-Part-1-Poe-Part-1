@@ -123,5 +123,43 @@ namespace CoffeeNChill.Functions
             return response;
         }
 
+        [Function("DownloadStaffDocument")]
+        public async Task<HttpResponseData> DownloadStaffDocument(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "documents/download/{fileName}")] HttpRequestData req,
+            string fileName)
+        {
+            var shareServiceClient = new ShareServiceClient(_connectionString);
+            var shareClient = shareServiceClient.GetShareClient(ShareName);
+
+            if (!await shareClient.ExistsAsync())
+            {
+                var notFoundResponse = req.CreateResponse(HttpStatusCode.NotFound);
+                await notFoundResponse.WriteStringAsync($"Share '{ShareName}' does not exist.");
+                return notFoundResponse;
+            }
+
+            var directoryClient = shareClient.GetRootDirectoryClient();
+            var fileClient = directoryClient.GetFileClient(fileName);
+
+            if (!await fileClient.ExistsAsync())
+            {
+                var notFoundResponse = req.CreateResponse(HttpStatusCode.NotFound);
+                await notFoundResponse.WriteStringAsync($"Document '{fileName}' not found.");
+                return notFoundResponse;
+            }
+
+            var downloadResponse = await fileClient.DownloadAsync();
+            var content = downloadResponse.Value.Content;
+
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            response.Headers.Add("Content-Type", "application/octet-stream");
+            response.Headers.Add("Content-Disposition", $"attachment; filename=\"{fileName}\"");
+
+            await content.CopyToAsync(response.Body);
+
+            _logger.LogInformation("Downloaded document: {FileName}", fileName);
+            return response;
+        }
+
         }
 }
