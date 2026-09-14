@@ -247,7 +247,7 @@ Import the collection in `/docs` and set the collection variable:
 
 ## YouTube Demo
 
-[Video Demo Link](#)
+https://youtu.be/G6AYkKV_1hI 
 
 ---
 
