@@ -1,0 +1,6 @@
+bin/
+obj/
+appsettings.json
+user secrets
+.vs/
+*.user
