@@ -208,6 +208,9 @@ docker push st10472501/coffeennchill-functions:v1.0
 - Created the `MenuItem` entity model using `PartitionKey` (Category) and `RowKey` (SKU/ID)
 - Implemented all HTTP-triggered Menu functions (Create, Get All, Get By Category, Update, Delete)
 - Added input validation and proper HTTP status codes (`400` Bad Request, `404` Not Found, `409` Conflict)
+- Tested and verified all Menu CRUD endpoints (POST, GET, PUT, DELETE) using Postman against the local Azurite storage emulator running in Docker
+- Validated input handling, boundary conditions, and proper HTTP status codes (201 Created, 200 OK, 400 Bad Request, 404 Not Found, 409 Conflict) during test executions
+- Coordinated recording of the YouTube demonstration video
 
 ### Team Member 2 - Yadav Iserbelas (Azure Blob Storage & Document Functions)
 
@@ -216,6 +219,7 @@ docker push st10472501/coffeennchill-functions:v1.0
 - Implemented the HTTP trigger function to **List** all stored operational files (`GET /api/documents`)
 - Implemented the HTTP trigger function to **Download** specific documents back to the client (`GET /api/documents/download/{fileName}`)
 - Added proper HTTP status codes (`201` Created, `400` Bad Request, `404` Not Found) and stream-based file transfers
+- Coordinated recording of the YouTube demonstration video
 
 ### Team Member 3 - Saiyen Subban (Docker, Postman & Documentation)
 
