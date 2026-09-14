@@ -29,7 +29,7 @@
                   "",
                   "pm.test('Response has required fields', function () {",
                   "    var json = pm.response.json();",
-                  "    pm.expect(json PartitionKey).to.eql('Hot Drinks');",
+                  "    pm.expect(json.PartitionKey).to.eql('Hot Drinks');",
                   "    pm.expect(json.RowKey).to.eql('COF-001');",
                   "    pm.expect(json.Name).to.eql('Espresso');",
                   "    pm.expect(json.Price).to.be.above(0);",

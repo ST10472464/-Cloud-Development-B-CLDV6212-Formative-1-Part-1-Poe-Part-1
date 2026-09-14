@@ -16,9 +16,9 @@
 
 ## Project Overview
 
-CoffeeNChill is a cloud-enabled canteen management system for a campus environment. This repository contains **Part 1** of the POE: Azure Functions, Azure Table Storage and Azure File Share integration running locally against the **Azurite** storage emulator inside isolated Docker containers.
+CoffeeNChill is a cloud-enabled canteen management system for a campus environment. This repository contains **Part 1** of the POE: Azure Functions, Azure Table Storage and Azure Blob Storage integration running locally against the **Azurite** storage emulator inside isolated Docker containers.
 
-This repository contains the **Team Member 1** deliverable (Azure Table Storage setup and the Menu Items CRUD API) and the **Team Member 2** deliverable (Azure File Share integration and the staff document management API).
+This repository contains the **Team Member 1** deliverable (Azure Table Storage setup and the Menu Items CRUD API) and the **Team Member 2** deliverable (Azure Blob Storage integration and the staff document management API).
 
 ---
 
@@ -32,7 +32,7 @@ This repository contains the **Team Member 1** deliverable (Azure Table Storage 
   - Get Menu Items By Category
   - Update Menu Item
   - Delete Menu Item
-- Azure **File Share** (`staff-docs`) emulated by **Azurite**
+- Azure **Blob Storage** (`staff-documents` container) emulated by **Azurite**
 - HTTP-triggered document functions:
   - Upload Staff Document
   - List Staff Documents
@@ -89,14 +89,16 @@ Alternatively, upload with a custom file name via `POST /api/documents/upload/{f
 
 ---
 
-## staff-docs File Share Schema
+## staff-documents Blob Storage Schema
 
-| Property   | Type   | Notes                                      |
-| ---------- | ------ | ------------------------------------------ |
-| File name  | string | e.g. `barista-recipe-sheet.pdf`            |
-| Share      | string | Logical container `staff-docs`             |
-| Content    | bytes  | Raw file content streamed to/from Azurite  |
-| Size       | long   | Byte size of the file (reported on upload) |
+| Property    | Type   | Notes                                      |
+| ----------- | ------ | ------------------------------------------ |
+| Blob name   | string | e.g. `barista-recipe-sheet.pdf`            |
+| Container   | string | Logical container `staff-documents`        |
+| Content     | bytes  | Raw file content streamed to/from Azurite  |
+| Size        | long   | Byte size of the file (reported on upload) |
+| Last Modified | datetime | Timestamp of last modification          |
+| Content Type  | string | MIME type of the stored blob             |
 
 ---
 
@@ -132,9 +134,9 @@ docker run -d -p 10000:10000 -p 10001:10001 -p 10002:10002 --name azurite mcr.mi
 
 Ports:
 
-- `10000` - Table storage
-- `10001` - Blob storage
-- `10002` - Queue storage
+- `10000` - Blob storage
+- `10001` - Queue storage
+- `10002` - Table storage
 
 ### 3. local.settings.json
 
@@ -150,7 +152,7 @@ The `local.settings.json` file points to Azurite using the development storage c
 }
 ```
 
-> `UseDevelopmentStorage=true` automatically targets the local Azurite emulator on ports 10000-10002.
+> `UseDevelopmentStorage=true` automatically targets the local Azurite emulator on ports 10000-10002 (Blob, Queue, Table).
 
 ### 4. Run the Functions locally
 
@@ -207,9 +209,9 @@ docker push st10472501/coffeennchill-functions:v1.0
 - Implemented all HTTP-triggered Menu functions (Create, Get All, Get By Category, Update, Delete)
 - Added input validation and proper HTTP status codes (`400` Bad Request, `404` Not Found, `409` Conflict)
 
-### Team Member 2 - Yadav Iserbelas (Azure Blob/File Storage & Document Functions)
+### Team Member 2 - Yadav Iserbelas (Azure Blob Storage & Document Functions)
 
-- Configured the `staff-docs` Azure File Share connection within the Functions project (`ShareServiceClient` with `UseDevelopmentStorage=true`)
+- Configured the `staff-documents` Azure Blob Storage container connection within the Functions project (`BlobServiceClient` with `UseDevelopmentStorage=true`)
 - Implemented the HTTP trigger function to **Upload** staff documents (`POST /api/documents/upload` and `POST /api/documents/upload/{fileName}`)
 - Implemented the HTTP trigger function to **List** all stored operational files (`GET /api/documents`)
 - Implemented the HTTP trigger function to **Download** specific documents back to the client (`GET /api/documents/download/{fileName}`)
@@ -249,7 +251,7 @@ Import the collection in `/docs` and set the collection variable:
 
 - .NET 10, Azure Functions v4 (Isolated Worker)
 - Azure Table Storage (via `Azure.Data.Tables`)
-- Azure File Share (via `Azure.Storage.Files.Shares`)
+- Azure Blob Storage (via `Azure.Storage.Blobs`)
 - Azurite storage emulator
 - Docker
 
@@ -260,7 +262,7 @@ Import the collection in `/docs` and set the collection variable:
 - [Azure Functions .NET isolated worker](https://learn.microsoft.com/en-us/azure/azure-functions/dotnet-isolated-process-guide)
 - [Azure Tables client library](https://learn.microsoft.com/en-us/azure/storage/tables/table-storage-how-to-use-dotnet)
 - [ITableEntity interface](https://learn.microsoft.com/en-us/dotnet/api/azure.data.tables.itableentity)
-- [Azure File Share client library](https://learn.microsoft.com/en-us/azure/storage/files/storage-dotnet-how-to-use-files)
+- [Azure Blob Storage client library](https://learn.microsoft.com/en-us/azure/storage/blobs/storage-quickstart-blobs-dotnet)
 - [Azurite emulator](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite)
 
 ---

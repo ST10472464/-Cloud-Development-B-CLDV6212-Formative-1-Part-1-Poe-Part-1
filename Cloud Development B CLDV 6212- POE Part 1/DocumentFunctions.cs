@@ -1,8 +1,6 @@
-using Azure;
-using Azure.Data.Tables;
-using Azure.Storage.Files.Shares;
-using Azure.Storage.Files.Shares.Models;
 using Cloud_Development_B_CLDV_6212__POE_Part_1;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
@@ -13,49 +11,63 @@ namespace CoffeeNChill.Functions
     public class DocumentFunctions
     {
         private readonly ILogger<DocumentFunctions> _logger;
-        private readonly string _connectionString;
-        private const string ShareName = "staff-docs";
+        private readonly BlobServiceClient _blobServiceClient;
+        private const string ContainerName = "staff-documents";
 
         public DocumentFunctions(ILogger<DocumentFunctions> logger)
         {
             _logger = logger;
-            _connectionString = Environment.GetEnvironmentVariable("AzureWebJobsStorage") ?? "UseDevelopmentStorage=true";
+            _blobServiceClient = new BlobServiceClient("UseDevelopmentStorage=true");
+        }
+
+        private async Task<BlobContainerClient> GetContainerClient()
+        {
+            var container = _blobServiceClient.GetBlobContainerClient(ContainerName);
+            await container.CreateIfNotExistsAsync(PublicAccessType.None);
+            return container;
         }
 
         [Function("UploadStaffDocument")]
         public async Task<HttpResponseData> UploadStaffDocument(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "documents/upload")] HttpRequestData req)
         {
-            var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-
-            if (string.IsNullOrEmpty(requestBody))
+            try
             {
-                var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
-                await badResponse.WriteStringAsync("No file data received.");
-                return badResponse;
+                var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+
+                if (string.IsNullOrEmpty(requestBody))
+                {
+                    var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
+                    await badResponse.WriteStringAsync("No file data received.");
+                    return badResponse;
+                }
+
+                var container = await GetContainerClient();
+                var fileName = $"uploaded-document-{DateTime.UtcNow:yyyyMMddHHmmss}.txt";
+                var blobClient = container.GetBlobClient(fileName);
+
+                var bytes = System.Text.Encoding.UTF8.GetBytes(requestBody);
+                using var stream = new MemoryStream(bytes);
+                await blobClient.UploadAsync(stream, overwrite: true);
+
+                _logger.LogInformation("Uploaded document: {FileName} ({Size} bytes)", fileName, bytes.Length);
+
+                var response = req.CreateResponse(HttpStatusCode.Created);
+                await response.WriteAsJsonAsync(new
+                {
+                    fileName = fileName,
+                    size = bytes.Length,
+                    message = "Document uploaded successfully"
+                });
+                return response;
             }
-
-            var shareServiceClient = new ShareServiceClient(_connectionString);
-            var shareClient = shareServiceClient.GetShareClient(ShareName);
-            await shareClient.CreateIfNotExistsAsync();
-
-            var directoryClient = shareClient.GetRootDirectoryClient();
-            var fileClient = directoryClient.GetFileClient("uploaded-document");
-
-            var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(requestBody));
-            await fileClient.CreateAsync(stream.Length);
-            await fileClient.UploadRangeAsync(new HttpRange(0, stream.Length), stream);
-
-            _logger.LogInformation("Uploaded document: uploaded-document ({Size} bytes)", stream.Length);
-
-            var response = req.CreateResponse(HttpStatusCode.Created);
-            await response.WriteAsJsonAsync(new
+            catch (Exception ex)
             {
-                fileName = "uploaded-document",
-                size = stream.Length,
-                message = "Document uploaded successfully"
-            });
-            return response;
+                _logger.LogError(ex, "Error uploading document to Azure Blob Storage");
+                var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
+                await errorResponse.WriteStringAsync($"Error uploading document: {ex.Message}");
+                return errorResponse;
+            }
         }
 
         [Function("UploadStaffDocumentBinary")]
@@ -63,81 +75,84 @@ namespace CoffeeNChill.Functions
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "documents/upload/{fileName}")] HttpRequestData req,
             string fileName)
         {
-            var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-
-            if (string.IsNullOrEmpty(requestBody))
+            try
             {
-                var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
-                await badResponse.WriteStringAsync("No file data received.");
-                return badResponse;
+                var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+
+                if (string.IsNullOrEmpty(requestBody))
+                {
+                    var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
+                    await badResponse.WriteStringAsync("No file data received.");
+                    return badResponse;
+                }
+
+                byte[] fileBytes;
+                try
+                {
+                    fileBytes = Convert.FromBase64String(requestBody);
+                }
+                catch
+                {
+                    fileBytes = System.Text.Encoding.UTF8.GetBytes(requestBody);
+                }
+
+                var container = await GetContainerClient();
+                var blobClient = container.GetBlobClient(fileName);
+
+                using var stream = new MemoryStream(fileBytes);
+                await blobClient.UploadAsync(stream, overwrite: true);
+
+                _logger.LogInformation("Uploaded document: {FileName} ({Size} bytes)", fileName, fileBytes.Length);
+
+                var response = req.CreateResponse(HttpStatusCode.Created);
+                await response.WriteAsJsonAsync(new
+                {
+                    fileName = fileName,
+                    size = fileBytes.Length,
+                    message = "Document uploaded successfully"
+                });
+                return response;
             }
-
-            var shareServiceClient = new ShareServiceClient(_connectionString);
-            var shareClient = shareServiceClient.GetShareClient(ShareName);
-            await shareClient.CreateIfNotExistsAsync();
-
-            var directoryClient = shareClient.GetRootDirectoryClient();
-            var fileClient = directoryClient.GetFileClient(fileName);
-
-            byte[] fileBytes = Convert.FromBase64String(requestBody);
-            var stream = new MemoryStream(fileBytes);
-            await fileClient.CreateAsync(stream.Length);
-            await fileClient.UploadRangeAsync(new HttpRange(0, stream.Length), stream);
-
-            _logger.LogInformation("Uploaded document: {FileName} ({Size} bytes)", fileName, stream.Length);
-
-            var response = req.CreateResponse(HttpStatusCode.Created);
-            await response.WriteAsJsonAsync(new
+            catch (Exception ex)
             {
-                fileName = fileName,
-                size = stream.Length,
-                message = "Document uploaded successfully"
-            });
-            return response;
+                _logger.LogError(ex, "Error uploading document {FileName} to Azure Blob Storage", fileName);
+                var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
+                await errorResponse.WriteStringAsync($"Error uploading document: {ex.Message}");
+                return errorResponse;
+            }
         }
 
         [Function("ListStaffDocuments")]
         public async Task<HttpResponseData> ListStaffDocuments(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "documents")] HttpRequestData req)
         {
-            var shareServiceClient = new ShareServiceClient(_connectionString);
-            var shareClient = shareServiceClient.GetShareClient(ShareName);
-            await shareClient.CreateIfNotExistsAsync();
-
-            var documents = new List<object>();
-            var directoryClient = shareClient.GetRootDirectoryClient();
-
-            await foreach (ShareFileItem item in directoryClient.GetFilesAndDirectoriesAsync())
+            try
             {
-                if (!item.IsDirectory)
+                var container = await GetContainerClient();
+                var documents = new List<object>();
+
+                await foreach (var blobItem in container.GetBlobsAsync())
                 {
-                    long fileSize = 0;
-                    DateTimeOffset? lastModified = null;
-
-                    try
-                    {
-                        var fileClient = directoryClient.GetFileClient(item.Name);
-                        var properties = await fileClient.GetPropertiesAsync();
-                        fileSize = properties.Value.ContentLength;
-                        lastModified = properties.Value.LastModified;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Could not retrieve properties for {FileName}", item.Name);
-                    }
-
                     documents.Add(new
                     {
-                        fileName = item.Name,
-                        size = fileSize,
-                        lastModified = lastModified?.UtcDateTime
+                        fileName = blobItem.Name,
+                        size = blobItem.Properties.ContentLength ?? 0,
+                        lastModified = blobItem.Properties.LastModified?.UtcDateTime,
+                        contentType = blobItem.Properties.ContentType
                     });
                 }
-            }
 
-            var response = req.CreateResponse(HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(documents);
-            return response;
+                var response = req.CreateResponse(HttpStatusCode.OK);
+                await response.WriteAsJsonAsync(documents);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error listing documents from Azure Blob Storage");
+                var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
+                await errorResponse.WriteStringAsync($"Error listing documents: {ex.Message}");
+                return errorResponse;
+            }
         }
 
         [Function("DownloadStaffDocument")]
@@ -145,38 +160,35 @@ namespace CoffeeNChill.Functions
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "documents/download/{fileName}")] HttpRequestData req,
             string fileName)
         {
-            var shareServiceClient = new ShareServiceClient(_connectionString);
-            var shareClient = shareServiceClient.GetShareClient(ShareName);
-
-            if (!await shareClient.ExistsAsync())
+            try
             {
-                var notFoundResponse = req.CreateResponse(HttpStatusCode.NotFound);
-                await notFoundResponse.WriteStringAsync($"Share '{ShareName}' does not exist.");
-                return notFoundResponse;
+                var container = await GetContainerClient();
+                var blobClient = container.GetBlobClient(fileName);
+
+                if (!await blobClient.ExistsAsync())
+                {
+                    var notFoundResponse = req.CreateResponse(HttpStatusCode.NotFound);
+                    await notFoundResponse.WriteStringAsync($"Document '{fileName}' not found.");
+                    return notFoundResponse;
+                }
+
+                var download = await blobClient.DownloadContentAsync();
+                var response = req.CreateResponse(HttpStatusCode.OK);
+                response.Headers.Add("Content-Type", download.Value.Details.ContentType ?? "application/octet-stream");
+                response.Headers.Add("Content-Disposition", $"attachment; filename=\"{fileName}\"");
+                var contentBytes = download.Value.Content.ToArray();
+                await response.Body.WriteAsync(contentBytes, 0, contentBytes.Length);
+
+                _logger.LogInformation("Downloaded document: {FileName}", fileName);
+                return response;
             }
-
-            var directoryClient = shareClient.GetRootDirectoryClient();
-            var fileClient = directoryClient.GetFileClient(fileName);
-
-            if (!await fileClient.ExistsAsync())
+            catch (Exception ex)
             {
-                var notFoundResponse = req.CreateResponse(HttpStatusCode.NotFound);
-                await notFoundResponse.WriteStringAsync($"Document '{fileName}' not found.");
-                return notFoundResponse;
+                _logger.LogError(ex, "Error downloading document {FileName} from Azure Blob Storage", fileName);
+                var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
+                await errorResponse.WriteStringAsync($"Error downloading document: {ex.Message}");
+                return errorResponse;
             }
-
-            var downloadResponse = await fileClient.DownloadAsync();
-            var content = downloadResponse.Value.Content;
-
-            var response = req.CreateResponse(HttpStatusCode.OK);
-            response.Headers.Add("Content-Type", "application/octet-stream");
-            response.Headers.Add("Content-Disposition", $"attachment; filename=\"{fileName}\"");
-
-            await content.CopyToAsync(response.Body);
-
-            _logger.LogInformation("Downloaded document: {FileName}", fileName);
-            return response;
         }
-
-        }
+    }
 }
