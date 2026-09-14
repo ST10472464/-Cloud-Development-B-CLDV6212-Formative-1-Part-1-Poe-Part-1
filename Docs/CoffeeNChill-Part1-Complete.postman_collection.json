@@ -1,0 +1,401 @@
+{
+  "info": {
+    "name": "CoffeeNChill API - Part 1 Complete Collection",
+    "_postman_id": "coffeennchill-part1-complete",
+    "description": "Complete API collection for CoffeeNChill Part 1 - Menu CRUD + Document Management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:7058/api"
+    }
+  ],
+  "item": [
+    {
+      "name": "Menu Operations",
+      "item": [
+        {
+          "name": "Create Menu Item",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has required fields', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json PartitionKey).to.eql('Hot Drinks');",
+                  "    pm.expect(json.RowKey).to.eql('COF-001');",
+                  "    pm.expect(json.Name).to.eql('Espresso');",
+                  "    pm.expect(json.Price).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/menu",
+              "host": ["{{baseUrl}}"],
+              "path": ["menu"]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"PartitionKey\": \"Hot Drinks\",\n  \"RowKey\": \"COF-001\",\n  \"Name\": \"Espresso\",\n  \"Description\": \"Strong Italian coffee shot\",\n  \"Price\": 25.00,\n  \"IsAvailable\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Cold Drink",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/menu",
+              "host": ["{{baseUrl}}"],
+              "path": ["menu"]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"PartitionKey\": \"Cold Drinks\",\n  \"RowKey\": \"COL-001\",\n  \"Name\": \"Iced Latte\",\n  \"Description\": \"Cold milk coffee with ice\",\n  \"Price\": 35.00,\n  \"IsAvailable\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Pastry",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/menu",
+              "host": ["{{baseUrl}}"],
+              "path": ["menu"]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"PartitionKey\": \"Pastries\",\n  \"RowKey\": \"PAS-104\",\n  \"Name\": \"Croissant\",\n  \"Description\": \"Buttery pastry\",\n  \"Price\": 18.00,\n  \"IsAvailable\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Get All Menu Items",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is an array with items', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array');",
+                  "    pm.expect(json.length).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/menu",
+              "host": ["{{baseUrl}}"],
+              "path": ["menu"]
+            }
+          }
+        },
+        {
+          "name": "Get Menu Items By Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('All items match category', function () {",
+                  "    var json = pm.response.json();",
+                  "    json.forEach(function(item) {",
+                  "        pm.expect(item.PartitionKey).to.eql('Hot Drinks');",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/menu/category/Hot Drinks",
+              "host": ["{{baseUrl}}"],
+              "path": ["menu", "category", "Hot Drinks"]
+            }
+          }
+        },
+        {
+          "name": "Update Menu Item",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Price was updated', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.Price).to.eql(30.00);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/menu/Hot Drinks/COF-001",
+              "host": ["{{baseUrl}}"],
+              "path": ["menu", "Hot Drinks", "COF-001"]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Name\": \"Espresso\",\n  \"Description\": \"Strong Italian coffee shot\",\n  \"Price\": 30.00,\n  \"IsAvailable\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Menu Item",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/menu/Pastries/PAS-104",
+              "host": ["{{baseUrl}}"],
+              "path": ["menu", "Pastries", "PAS-104"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Document Operations",
+      "item": [
+        {
+          "name": "Upload Staff Document",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has fileName and size', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.fileName).to.be.a('string');",
+                  "    pm.expect(json.size).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/documents/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["documents", "upload"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "Barista recipe: Pull espresso shot for 25 seconds at 9 bars pressure. Use 18g fine-ground coffee.",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/plain"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Upload Document With Name",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Correct file name returned', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.fileName).to.eql('cleaning-manual.txt');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/documents/upload/cleaning-manual.txt",
+              "host": ["{{baseUrl}}"],
+              "path": ["documents", "upload", "cleaning-manual.txt"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "Equipment Cleaning Manual: Clean espresso machine daily with backflush detergent. Wsteam wand after each use."
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/plain"
+              }
+            ]
+          }
+        },
+        {
+          "name": "List Staff Documents",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is an array', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/documents",
+              "host": ["{{baseUrl}}"],
+              "path": ["documents"]
+            }
+          }
+        },
+        {
+          "name": "Download Staff Document",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type header present', function () {",
+                  "    pm.response.to.have.header('Content-Type');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/documents/download/cleaning-manual.txt",
+              "host": ["{{baseUrl}}"],
+              "path": ["documents", "download", "cleaning-manual.txt"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
