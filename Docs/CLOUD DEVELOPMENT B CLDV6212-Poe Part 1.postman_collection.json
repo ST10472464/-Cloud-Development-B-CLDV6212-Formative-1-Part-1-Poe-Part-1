@@ -1,0 +1,90 @@
+{
+  "info": {
+    "_postman_id": "f7c63ee2-cb77-4369-a811-919909dd01ae",
+    "name": "CoffeeNChill - Menu API (Part 1)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:7058/api"
+    }
+  ],
+  "item": [
+    {
+      "name": "Create Menu Item",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"partitionKey\": \"Hot Drinks\",\r\n  \"rowKey\": \"COF-001\",\r\n  \"name\": \"Cappuccino\",\r\n  \"description\": \"Rich espresso with steamed milk and foam\",\r\n  \"price\": 3.50,\r\n  \"isAvailable\": true\r\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/menu",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "menu" ]
+        }
+      }
+    },
+    {
+      "name": "Get All Menu Items",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/menu",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "menu" ]
+        }
+      }
+    },
+    {
+      "name": "Get Menu Items By Category",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/menu/category/Hot Drinks",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "menu", "category", "Hot Drinks" ]
+        }
+      }
+    },
+    {
+      "name": "Update Menu Item",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"price\": 4.00,\r\n  \"isAvailable\": false\r\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/menu/Hot Drinks/COF-001",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "menu", "Hot Drinks", "COF-001" ]
+        }
+      }
+    },
+    {
+      "name": "Delete Menu Item",
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/menu/Hot Drinks/COF-001",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "menu", "Hot Drinks", "COF-001" ]
+        }
+      }
+    }
+  ]
+}
