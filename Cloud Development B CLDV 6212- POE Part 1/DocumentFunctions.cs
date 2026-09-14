@@ -96,5 +96,32 @@ namespace CoffeeNChill.Functions
             return response;
         }
 
+        [Function("ListStaffDocuments")]
+        public async Task<HttpResponseData> ListStaffDocuments(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "documents")] HttpRequestData req)
+        {
+            var shareServiceClient = new ShareServiceClient(_connectionString);
+            var shareClient = shareServiceClient.GetShareClient(ShareName);
+            await shareClient.CreateIfNotExistsAsync();
+
+            var documents = new List<object>();
+            var directoryClient = shareClient.GetRootDirectoryClient();
+
+            await foreach (ShareFileItem item in directoryClient.GetFilesAndDirectoriesAsync())
+            {
+                if (!item.IsDirectory)
+                {
+                    documents.Add(new
+                    {
+                        fileName = item.Name
+                    });
+                }
+            }
+
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            await response.WriteAsJsonAsync(documents);
+            return response;
+        }
+
         }
 }
