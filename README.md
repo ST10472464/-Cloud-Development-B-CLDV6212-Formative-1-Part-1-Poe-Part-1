@@ -18,7 +18,7 @@
 
 CoffeeNChill is a cloud-enabled canteen management system for a campus environment. This repository contains **Part 1** of the POE: Azure Functions, Azure Table Storage and Azure File Share integration running locally against the **Azurite** storage emulator inside isolated Docker containers.
 
-This is the **Team Member 1** deliverable: the Azure Table Storage setup and the Menu Items CRUD API.
+This repository contains the **Team Member 1** deliverable (Azure Table Storage setup and the Menu Items CRUD API) and the **Team Member 2** deliverable (Azure File Share integration and the staff document management API).
 
 ---
 
@@ -32,6 +32,11 @@ This is the **Team Member 1** deliverable: the Azure Table Storage setup and the
   - Get Menu Items By Category
   - Update Menu Item
   - Delete Menu Item
+- Azure **File Share** (`staff-docs`) emulated by **Azurite**
+- HTTP-triggered document functions:
+  - Upload Staff Document
+  - List Staff Documents
+  - Download Staff Document
 - Input validation and proper HTTP status codes (`200`, `201`, `400`, `404`)
 - Docker containerization for local development
 
@@ -59,6 +64,39 @@ This is the **Team Member 1** deliverable: the Azure Table Storage setup and the
   "IsAvailable": true
 }
 ```
+
+### Example Request - Upload a Staff Document
+
+Send a `POST` request to `/api/documents/upload` with a `multipart/form-data` file body.
+
+```bash
+curl -X POST http://localhost:7071/api/documents/upload \
+  -F "file=@barista-recipe-sheet.pdf"
+```
+
+Alternatively, upload with a custom file name via `POST /api/documents/upload/{fileName}` sending the file bytes (Base64-encoded) in the request body.
+
+---
+
+## Document API Endpoints
+
+| Method | Route                                 | Description                                        | Status Codes        |
+| ------ | ------------------------------------- | -------------------------------------------------- | ------------------- |
+| POST   | `/api/documents/upload`               | Upload a staff document (file body)                | `201`, `400`        |
+| POST   | `/api/documents/upload/{fileName}`    | Upload a document with a specific file name        | `201`, `400`        |
+| GET    | `/api/documents`                      | List all stored documents                          | `200`               |
+| GET    | `/api/documents/download/{fileName}`  | Download a stored document                         | `200`, `404`        |
+
+---
+
+## staff-docs File Share Schema
+
+| Property   | Type   | Notes                                      |
+| ---------- | ------ | ------------------------------------------ |
+| File name  | string | e.g. `barista-recipe-sheet.pdf`            |
+| Share      | string | Logical container `staff-docs`             |
+| Content    | bytes  | Raw file content streamed to/from Azurite  |
+| Size       | long   | Byte size of the file (reported on upload) |
 
 ---
 
@@ -155,10 +193,13 @@ docker push st10472501/coffeennchill-functions:v1.0
 - Implemented all HTTP-triggered Menu functions (Create, Get All, Get By Category, Update, Delete)
 - Added input validation and proper HTTP status codes (`400` Bad Request, `404` Not Found, `409` Conflict)
 
-### Team Member 2 - Yadav Iserbelas (Azure Blob Storage & Document Functions)
+### Team Member 2 - Yadav Iserbelas (Azure Blob/File Storage & Document Functions)
 
-- Configure the `staff-docs` Azure Blob Storage container
-- Upload, List and Download document HTTP functions
+- Configured the `staff-docs` Azure File Share connection within the Functions project (`ShareServiceClient` with `UseDevelopmentStorage=true`)
+- Implemented the HTTP trigger function to **Upload** staff documents (`POST /api/documents/upload` and `POST /api/documents/upload/{fileName}`)
+- Implemented the HTTP trigger function to **List** all stored operational files (`GET /api/documents`)
+- Implemented the HTTP trigger function to **Download** specific documents back to the client (`GET /api/documents/download/{fileName}`)
+- Added proper HTTP status codes (`201` Created, `400` Bad Request, `404` Not Found) and stream-based file transfers
 
 ### Team Member 3 - Saiyen Subban (Docker, Postman & Documentation)
 
@@ -188,6 +229,7 @@ Import the collection in `/docs` and set the collection variable:
 
 - .NET 10, Azure Functions v4 (Isolated Worker)
 - Azure Table Storage (via `Azure.Data.Tables`)
+- Azure File Share (via `Azure.Storage.Files.Shares`)
 - Azurite storage emulator
 - Docker
 
@@ -198,6 +240,7 @@ Import the collection in `/docs` and set the collection variable:
 - [Azure Functions .NET isolated worker](https://learn.microsoft.com/en-us/azure/azure-functions/dotnet-isolated-process-guide)
 - [Azure Tables client library](https://learn.microsoft.com/en-us/azure/storage/tables/table-storage-how-to-use-dotnet)
 - [ITableEntity interface](https://learn.microsoft.com/en-us/dotnet/api/azure.data.tables.itableentity)
+- [Azure File Share client library](https://learn.microsoft.com/en-us/azure/storage/files/storage-dotnet-how-to-use-files)
 - [Azurite emulator](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite)
 
 ---
