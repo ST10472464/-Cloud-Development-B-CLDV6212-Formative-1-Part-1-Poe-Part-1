@@ -1,0 +1,132 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\keyur\\source\\repos\\Cloud Development B CLDV 6212- POE Part 1\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A6634AC7-62B5-79DC-E614-C2A7D48DE943}|Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1.csproj|c:\\users\\keyur\\source\\repos\\cloud development b cldv 6212- poe part 1\\cloud development b cldv 6212- poe part 1\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A6634AC7-62B5-79DC-E614-C2A7D48DE943}|Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1.csproj|solutionrelative:cloud development b cldv 6212- poe part 1\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A6634AC7-62B5-79DC-E614-C2A7D48DE943}|Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1.csproj|c:\\users\\keyur\\source\\repos\\cloud development b cldv 6212- poe part 1\\cloud development b cldv 6212- poe part 1\\.gitignore||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A6634AC7-62B5-79DC-E614-C2A7D48DE943}|Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1.csproj|solutionrelative:cloud development b cldv 6212- poe part 1\\.gitignore||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A6634AC7-62B5-79DC-E614-C2A7D48DE943}|Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1.csproj|c:\\users\\keyur\\source\\repos\\cloud development b cldv 6212- poe part 1\\cloud development b cldv 6212- poe part 1\\host.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{A6634AC7-62B5-79DC-E614-C2A7D48DE943}|Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1.csproj|solutionrelative:cloud development b cldv 6212- poe part 1\\host.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A6634AC7-62B5-79DC-E614-C2A7D48DE943}|Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1.csproj|c:\\users\\keyur\\source\\repos\\cloud development b cldv 6212- poe part 1\\cloud development b cldv 6212- poe part 1\\local.settings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{A6634AC7-62B5-79DC-E614-C2A7D48DE943}|Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1.csproj|solutionrelative:cloud development b cldv 6212- poe part 1\\local.settings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A6634AC7-62B5-79DC-E614-C2A7D48DE943}|Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1.csproj|c:\\users\\keyur\\source\\repos\\cloud development b cldv 6212- poe part 1\\cloud development b cldv 6212- poe part 1\\menufunctions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A6634AC7-62B5-79DC-E614-C2A7D48DE943}|Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1.csproj|solutionrelative:cloud development b cldv 6212- poe part 1\\menufunctions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A6634AC7-62B5-79DC-E614-C2A7D48DE943}|Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1.csproj|c:\\users\\keyur\\source\\repos\\cloud development b cldv 6212- poe part 1\\cloud development b cldv 6212- poe part 1\\menuitem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A6634AC7-62B5-79DC-E614-C2A7D48DE943}|Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1.csproj|solutionrelative:cloud development b cldv 6212- poe part 1\\menuitem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 302,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\keyur\\source\\repos\\Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1\\Program.cs",
+              "RelativeDocumentMoniker": "Cloud Development B CLDV 6212- POE Part 1\\Program.cs",
+              "ToolTip": "C:\\Users\\keyur\\source\\repos\\Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1\\Program.cs",
+              "RelativeToolTip": "Cloud Development B CLDV 6212- POE Part 1\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-14T15:12:39.07Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "MenuItem.cs",
+              "DocumentMoniker": "C:\\Users\\keyur\\source\\repos\\Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1\\MenuItem.cs",
+              "RelativeDocumentMoniker": "Cloud Development B CLDV 6212- POE Part 1\\MenuItem.cs",
+              "ToolTip": "C:\\Users\\keyur\\source\\repos\\Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1\\MenuItem.cs",
+              "RelativeToolTip": "Cloud Development B CLDV 6212- POE Part 1\\MenuItem.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABQAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-14T15:12:38.503Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "MenuFunctions.cs",
+              "DocumentMoniker": "C:\\Users\\keyur\\source\\repos\\Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1\\MenuFunctions.cs",
+              "RelativeDocumentMoniker": "Cloud Development B CLDV 6212- POE Part 1\\MenuFunctions.cs",
+              "ToolTip": "C:\\Users\\keyur\\source\\repos\\Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1\\MenuFunctions.cs",
+              "RelativeToolTip": "Cloud Development B CLDV 6212- POE Part 1\\MenuFunctions.cs",
+              "ViewState": "AgIAAGgAAAAAAAAAAAAQwJcAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-14T15:12:37.884Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "local.settings.json",
+              "DocumentMoniker": "C:\\Users\\keyur\\source\\repos\\Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1\\local.settings.json",
+              "RelativeDocumentMoniker": "Cloud Development B CLDV 6212- POE Part 1\\local.settings.json",
+              "ToolTip": "C:\\Users\\keyur\\source\\repos\\Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1\\local.settings.json",
+              "RelativeToolTip": "Cloud Development B CLDV 6212- POE Part 1\\local.settings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-09-14T15:12:37.126Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "host.json",
+              "DocumentMoniker": "C:\\Users\\keyur\\source\\repos\\Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1\\host.json",
+              "RelativeDocumentMoniker": "Cloud Development B CLDV 6212- POE Part 1\\host.json",
+              "ToolTip": "C:\\Users\\keyur\\source\\repos\\Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1\\host.json",
+              "RelativeToolTip": "Cloud Development B CLDV 6212- POE Part 1\\host.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-09-14T15:12:36.224Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": ".gitignore",
+              "DocumentMoniker": "C:\\Users\\keyur\\source\\repos\\Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1\\.gitignore",
+              "RelativeDocumentMoniker": "Cloud Development B CLDV 6212- POE Part 1\\.gitignore",
+              "ToolTip": "C:\\Users\\keyur\\source\\repos\\Cloud Development B CLDV 6212- POE Part 1\\Cloud Development B CLDV 6212- POE Part 1\\.gitignore",
+              "RelativeToolTip": "Cloud Development B CLDV 6212- POE Part 1\\.gitignore",
+              "ViewState": "AgIAANYAAAAAAAAAAADwv+gAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2026-09-14T15:12:35.481Z",
+              "EditorCaption": ""
+            }
+          ]
+        },
+        {
+          "DockedWidth": 98,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
