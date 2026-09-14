@@ -111,9 +111,26 @@ namespace CoffeeNChill.Functions
             {
                 if (!item.IsDirectory)
                 {
+                    long fileSize = 0;
+                    DateTimeOffset? lastModified = null;
+
+                    try
+                    {
+                        var fileClient = directoryClient.GetFileClient(item.Name);
+                        var properties = await fileClient.GetPropertiesAsync();
+                        fileSize = properties.Value.ContentLength;
+                        lastModified = properties.Value.LastModified;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Could not retrieve properties for {FileName}", item.Name);
+                    }
+
                     documents.Add(new
                     {
-                        fileName = item.Name
+                        fileName = item.Name,
+                        size = fileSize,
+                        lastModified = lastModified?.UtcDateTime
                     });
                 }
             }
