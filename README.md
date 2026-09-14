@@ -163,6 +163,20 @@ func start
 
 ## Docker Execution (Standalone, no Compose)
 
+### Docker Hub Images
+
+| Image | Tag | Source |
+|---|---|---|
+| `st10472501/coffeennchill-functions` | `:v1.0` | This project's Dockerfile |
+| `mcr.microsoft.com/azure-storage/azurite` | `:latest` | Official Microsoft Azurite |
+
+### Azurite Container (from Docker Hub)
+
+```bash
+docker pull mcr.microsoft.com/azure-storage/azurite
+docker run -d -p 10000:10000 -p 10001:10001 -p 10002:10002 --name azurite mcr.microsoft.com/azure-storage/azurite
+```
+
 ### Build the Functions image
 
 ```bash
@@ -172,7 +186,7 @@ docker build -t st10472501/coffeennchill-functions:v1.0 .
 ### Run the Functions container (must be on Azurite's network)
 
 ```bash
-docker run --network host -p 7071:80 st10472501/coffeennchill-functions:v1.0
+docker run --network host -p 7058:80 st10472501/coffeennchill-functions:v1.0
 ```
 
 ### Push to Docker Hub
@@ -203,9 +217,14 @@ docker push st10472501/coffeennchill-functions:v1.0
 
 ### Team Member 3 - Saiyen Subban (Docker, Postman & Documentation)
 
-- Azurite container verification & Dockerfile
-- Postman collection with `{{baseUrl}}` variables
-- Root `README.md` and YouTube demonstration video
+- Pulled and verified the Azurite storage container (`docker run -p 10000:10000 -p 10001:10001 -p 10002:10002`)
+- Wrote the Dockerfile using official Azure Functions .NET 10 isolated runtime base image
+- Built and tagged the Docker image as `st10472501/coffeennchill-functions:v1.0`
+- Published the Docker Hub repository as public at `https://hub.docker.com/r/st10472501/coffeennchill-functions`
+- Built comprehensive Postman collection covering all Menu and Document endpoints with `{{baseUrl}}` environment variables and automated test assertions
+- Exported Postman collection as JSON in `/Docs` folder
+- Wrote root `README.md` with local setup steps, Docker execution commands, and team member contributions
+- Coordinated recording of the YouTube demonstration video
 
 ---
 
