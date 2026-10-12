@@ -1,0 +1,13 @@
+# Keep the Functions image build context lean: the Dockerfile copies the repo
+# root, so anything below would otherwise be sent to the daemon and baked in.
+.git
+.gitignore
+.vs
+**/bin
+**/obj
+**/*.user
+Docs
+README.md
+docker-compose.yml
+Dockerfile.azurite
+azurite-data
