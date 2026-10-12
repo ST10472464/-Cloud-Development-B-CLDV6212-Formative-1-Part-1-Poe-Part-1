@@ -1,6 +1,6 @@
 # CoffeeNChill - Cloud Development B (CLDV6212) POE Part 1 & Part 2
 
-## Formative Assessment 1
+## Formative Assessment 1 - Part 2: Queue Triggers & Docker Compose Orchestration
 
 ---
 
@@ -16,9 +16,69 @@
 
 ## Project Overview
 
-CoffeeNChill is a cloud-enabled canteen management system for a campus environment. This repository contains **Part 1** (Azure Functions, Azure Table Storage and Azure Blob Storage integration running locally against the **Azurite** storage emulator) and **Part 2** (asynchronous order queuing with a Queue-triggered Azure Function, orchestrated locally via **Docker Compose** pulling images from **Docker Hub**).
+CoffeeNChill is a cloud-enabled canteen management system for a campus environment. This repository contains **Part 2** of the POE: asynchronous order queuing via Azure Storage Queues, a queue-triggered Azure Function that tracks the order lifecycle in Azure Table Storage, and multi-container orchestration with Docker Compose pulling images from Docker Hub - all running locally against the **Azurite** storage emulator.
 
 During break times hundreds of students order simultaneously and synchronous processing crashes the system. Part 2 fixes this: order submission never blocks the client — the order is written to an Azure Storage Queue and a background Azure Function processes it, logging it into an Orders Azure Table and advancing its preparation status `Received → Preparing → Ready → Collected`.
+
+Part 1 (Azure Table Storage Menu CRUD API and Azure Blob Storage document API) is retained in this repository as the foundation that Part 2 builds on.
+
+### Part 2 Deliverables
+
+- Queue producer endpoint `POST /api/orders/queue` pushing to `order-processing-queue`
+- JSON payload serialisation (`OrderId`, `CustomerName`, `SelectedItemSKUs`, `TotalPrice`, `OrderTimestamp`)
+- Input validation and error handling on the order payload
+- Queue-triggered function `ProcessOrderQueue` with `[QueueTrigger("order-processing-queue")]`
+- `Orders` Azure Table (`PartitionKey`: OrderDate, `RowKey`: OrderId, `Status`: Received)
+- Order lifecycle transitions: Received -> Preparing -> Ready -> Collected
+- Poison queue handling and exception logging
+- Root `docker-compose.yml` orchestrating Azurite and the Function host from Docker Hub images
+- Updated Postman collection covering order placement and status verification
+
+---
+
+## Part 2 - Order Queue Endpoints
+
+| Method | Route                              | Description                                        | Status Codes |
+| ------ | ---------------------------------- | -------------------------------------------------- | ------------ |
+| POST   | `/api/orders/queue`                | Validate an order and push it to `order-processing-queue` | `200`, `400`, `500` |
+| GET    | `/api/orders/{date}/{orderId}`     | Read a single order's status from the `Orders` table | `200`, `404` |
+| GET    | `/api/orders/{date}`               | List all orders placed on a given date              | `200`        |
+
+### Example Request - Place an Order
+
+`POST http://localhost:7071/api/orders/queue`
+
+```json
+{
+  "OrderId": "ORD-2026-8801",
+  "CustomerName": "Jane Smith",
+  "SelectedItemSKUs": ["COF-001", "PAS-104"],
+  "TotalPrice": 65.00,
+  "OrderTimestamp": "2026-10-12T10:15:00Z"
+}
+```
+
+The endpoint rejects a payload with `400 Bad Request` when `OrderId`, `CustomerName` or `SelectedItemSKUs` are missing/empty, when `TotalPrice` is not greater than zero, or when the body is not valid JSON. A missing `OrderTimestamp` is generated as UTC at the time of the request. On success the message is Base64-encoded and written to `order-processing-queue`, returning:
+
+```json
+{ "message": "Order queued successfully", "orderId": "ORD-2026-8801" }
+```
+
+If the queue connection fails, the endpoint logs the exception and returns `500 Internal Server Error`.
+
+### Orders Table Schema
+
+| Property | Type | Notes |
+| ------------- | --------- | ------------------------------------------------- |
+| `PartitionKey` | string | Order date, formatted `yyyy-MM-dd` |
+| `RowKey` | string | `OrderId`, e.g. `ORD-2026-8801` |
+| `CustomerName` | string | Customer placing the order |
+| `SelectedItemSKUs` | string | Comma-separated SKU list |
+| `TotalPrice` | double | Order total |
+| `Status` | string | `Received` -> `Preparing` -> `Ready` -> `Collected` |
+| `OrderTimestamp` | datetime | Order timestamp (UTC) |
+| `ETag` | ETag | Concurrency token (Azure Tables) |
+| `Timestamp` | datetime | Server-managed |
 
 ---
 
@@ -274,7 +334,17 @@ func start
 
 ## Team Member Contributions
 
-### Team Member 1 - Keyur Keshav (Menu CRUD & Order Queue Producer)
+### Team Member 1 - Keyur Keshav (Menu CRUD, Queue Producer & Order Validation)
+
+**Part 2**
+
+- Built the queue producer endpoint `POST /api/orders/queue` (`OrderFunctions.cs`) that accepts incoming order details
+- Implemented C# serialisation of the order into the required JSON message payload (`OrderId`, `CustomerName`, `SelectedItemSKUs`, `TotalPrice`, `OrderTimestamp`) using `System.Text.Json`
+- Established the connection to `order-processing-queue` in Azurite through the `AzureWebJobsStorage` connection string (`UseDevelopmentStorage=true`), creating the queue with `CreateIfNotExistsAsync`
+- Added input validation covering `OrderId`, `CustomerName`, `SelectedItemSKUs`, `TotalPrice` and `OrderTimestamp`, with `400 Bad Request` responses and warning logs for each failure case
+- Added robust error handling: malformed JSON is caught as `JsonException` and rejected with `400`, while queue connection/payload failures are caught, logged and returned as `500 Internal Server Error`
+- Base64-encoded the serialised payload before `SendMessageAsync` so the message is valid for Azure Storage Queues
+- Updated the Postman collection in `/Docs` with sample order placement requests, including a valid order and a `TotalPrice: 0` validation-rejection case
 
 **Part 1**
 
@@ -285,13 +355,16 @@ func start
 - Added input validation and proper HTTP status codes (`400` Bad Request, `404` Not Found, `409` Conflict)
 - Tested and verified all Menu CRUD endpoints (POST, GET, PUT, DELETE) using Postman against the local Azurite storage emulator running in Docker
 
+### Team Member 2 - Yadav Iserbelas (Blob Documents, Queue Trigger & Order Lifecycle)
+
 **Part 2**
 
-- Implemented the `POST /api/orders/queue` producer: validates `OrderId`, `CustomerName`, SKU list and `TotalPrice`, generates `OrderTimestamp` when missing
-- Serializes the order to a JSON string and Base64-encodes it before pushing to `order-processing-queue`, keeping the request non-blocking
-- Added the `Order` model used by both the producer and the queue trigger
-
-### Team Member 2 - Yadav Iserbelas (Blob Documents & Queue Trigger)
+- Implemented the background queue-triggered function `ProcessOrderQueue` using `[QueueTrigger("order-processing-queue")]`
+- Parses incoming queue JSON messages into an `Order` object, accepting both raw and Base64-encoded payloads
+- Wrote `OrderEntity` and tracked order records in the `Orders` Azure Table (`PartitionKey`: OrderDate, `RowKey`: OrderId, initial `Status`: Received)
+- Simulated the order lifecycle transitions Received -> Preparing -> Ready -> Collected
+- Implemented poison queue handling (`order-processing-queue-poison`) and exception logging
+- Added `GET /api/orders/{date}/{orderId}` and `GET /api/orders/{date}` for Postman verification of status updates
 
 **Part 1**
 
@@ -301,14 +374,7 @@ func start
 - Implemented the HTTP trigger function to **Download** specific documents back to the client (`GET /api/documents/download/{fileName}`)
 - Added proper HTTP status codes (`201` Created, `400` Bad Request, `404` Not Found) and stream-based file transfers
 
-**Part 2**
-
-- Implemented `ProcessOrderQueue` with `[QueueTrigger("order-processing-queue")]`: parses the queue message (plain JSON or Base64), writes the order into the `Orders` table as `Received`
-- Simulated the barista lifecycle `Received → Preparing → Ready → Collected` with ETag-safe table updates
-- Added poison-queue forwarding (`order-processing-queue-poison`) for unparsable or failing messages
-- Added `GET /api/orders/{date}/{orderId}` and `GET /api/orders/{date}` so Postman can verify the status march
-
-### Team Member 3 - Saiyen Subban (Docker, Compose Orchestration, Postman & Documentation)
+### Team Member 3 - Saiyen Subban (Docker Compose, Docker Hub, Postman & Documentation)
 
 **Part 1**
 
@@ -329,17 +395,24 @@ func start
 
 ## Testing with Postman
 
-Import the collection from `/Docs`:
+Import `Docs/CLOUD DEVELOPMENT B CLDV6212-Poe Part 2.postman_collection.json` (Part 2 async order workflow) and `CoffeeNChill-Part1-Complete.postman_collection.json` (Part 1 Menu + Document endpoints). The Part 2 collection ships with these variables pre-filled:
 
-- `CLOUD DEVELOPMENT B CLDV6212-Poe Part 2.postman_collection.json` — full Part 2 async order workflow
-- `CoffeeNChill-Part1-Complete.postman_collection.json` — Part 1 Menu + Document endpoints
+```
+{{baseUrl}}   = http://localhost:7071/api
+{{orderDate}} = 2026-10-12
+{{orderId}}   = ORD-2026-8801
+```
 
-The Part 2 collection ships with `{{baseUrl}} = http://localhost:7071/api` already set, plus `{{date}}`/`{{orderId}}` variables that request 1 fills in automatically. Run the requests in order:
+| # | Request | Method | Expected |
+|---|---------|--------|----------|
+| 1 | Place Order - Valid | `POST /api/orders/queue` | `200` |
+| 2 | Place Order - Rejected: TotalPrice 0 | `POST /api/orders/queue` | `400` |
+| 3 | Place Order - Rejected: Missing OrderId | `POST /api/orders/queue` | `400` |
+| 4 | Place Order - Rejected: Empty SelectedItemSKUs | `POST /api/orders/queue` | `400` |
+| 5 | Get Order Status from Orders Table | `GET /api/orders/{date}/{orderId}` | `200` / `404` |
+| 6 | List Orders by Date from Orders Table | `GET /api/orders/{date}` | `200` |
 
-1. **Queue Order (Jane Smith)** - expect `200` and `"Order queued successfully"`
-2. **Get Order Status by Date and OrderId** - re-send every ~2s and watch `Status`: `Received` → `Preparing` → `Ready` → `Collected`
-3. **Get Orders by Date** - expect the array to contain `ORD-2026-8801`
-4. **Queue Order - Invalid TotalPrice** - expect `400 Bad Request`
+Every request carries automated test assertions. Run request **1** first so the order exists, then run **5** and **6** a few seconds later to watch the status advance through `Received` -> `Preparing` -> `Ready` -> `Collected`.
 
 ---
 
@@ -347,6 +420,33 @@ The Part 2 collection ships with `{{baseUrl}} = http://localhost:7071/api` alrea
 
 - Part 1: https://youtu.be/G6AYkKV_1hI
 - Part 2 (compose up + queue workflow): _link to be added after the Part 2 walkthrough is recorded_
+
+---
+
+## Changelog
+
+### v2.0 - POE Part 2
+
+| Commit | Change |
+|--------|--------|
+| `4de3c3c` | Added the `Order` model matching the queue message JSON payload structure (`OrderId`, `CustomerName`, `SelectedItemSKUs`, `TotalPrice`, `OrderTimestamp`) |
+| `e63f7b6` | Added the queue producer endpoint `POST /api/orders/queue` with field validation and Base64 encoding |
+| `ca45559` | Added the Part 2 Postman collection with order queue sample requests |
+| `1911b15` | Added `OrderEntity` for the `Orders` table (`OrderDate`/`OrderId`, status `Received`) - *Team Member 2* |
+| `f123781` | Added the `ProcessOrderQueue` trigger parsing orders into the `Orders` table as `Received` - *Team Member 2* |
+| `4030bdc` | Simulated the lifecycle Received -> Preparing -> Ready -> Collected - *Team Member 2* |
+| `5826bb2` | Added poison queue handling and exception logging - *Team Member 2* |
+| `2bb9ba8` | Added order status query endpoints for Postman verification - *Team Member 2* |
+| `0432f34` | Resolved the merge conflict in `DeleteMenuItem`, keeping the ETag-safe delete - *Team Member 2* |
+| `6e8ee2a` | Untracked the `.vs` IDE cache and ignored it at the repository root - *Team Member 2* |
+| `3383db2` | Renamed the function app folder from `POE Part 1` to `POE Part 2`, updating Dockerfile and solution paths - *Team Member 2* |
+| `2bf342f` | Ignored function host log files (`*.log`) |
+
+### v1.0 - Formative 1 Part 1
+
+- Azure Table Storage Menu CRUD API and Azure Blob Storage document API
+- Docker containerisation and Docker Hub images
+- Initial README, Postman collection and YouTube demonstration link
 
 ---
 
