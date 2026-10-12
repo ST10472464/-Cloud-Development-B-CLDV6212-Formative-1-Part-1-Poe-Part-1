@@ -1,0 +1,87 @@
+{
+  "info": {
+    "_postman_id": "78513ded-13e7-4914-b232-c8d9b16c7d05",
+    "name": "CLOUD DEVELOPMENT B CLDV6212-Poe Part 2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "58191986",
+    "_collection_link": "https://go.postman.co/collection/58191986-78513ded-13e7-4914-b232-c8d9b16c7d05?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "New Request",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"OrderId\": \"ORD-2026-8801\",\r\n  \"CustomerName\": \"Jane Smith\",\r\n  \"SelectedItemSKUs\": [\"COF-001\", \"PAS-104\"],\r\n  \"TotalPrice\": 65.00,\r\n  \"OrderTimestamp\": \"2026-10-12T10:15:00Z\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:7071/api/orders/queue",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "7071",
+          "path": [
+            "api",
+            "orders",
+            "queue"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "New Request Copy",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"OrderId\": \"ORD-2026-8898\",\r\n  \"CustomerName\": \"Carol White\",\r\n  \"SelectedItemSKUs\": [\"COF-001\"],\r\n  \"TotalPrice\": 0\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:7071/api/orders/queue",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "7071",
+          "path": [
+            "api",
+            "orders",
+            "queue"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": ""
+    }
+  ]
+}
