@@ -185,7 +185,13 @@ namespace CoffeeNChill.Functions
 
             try
             {
+<<<<<<< HEAD:Cloud Development B CLDV 6212- POE Part 1/MenuFunctions.cs
                 await tableClient.DeleteEntityAsync(category, id);
+=======
+                var existingItem = await tableClient.GetEntityAsync<MenuItem>(category, id);
+                await tableClient.DeleteEntityAsync(existingItem.Value.PartitionKey, existingItem.Value.RowKey, existingItem.Value.ETag);
+
+>>>>>>> 896135c (Add queue producer endpoint POST /api/orders/queue with validation and Base64 encoding):Cloud Development B CLDV 6212- POE Part 2/MenuFunctions.cs
                 _logger.LogInformation("Deleted menu item {Id} in category {Category}.", id, category);
 
                 var response = req.CreateResponse(HttpStatusCode.OK);
