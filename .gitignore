@@ -3,3 +3,5 @@
 bin/
 obj/
 *.user
+*.log
+func.log
