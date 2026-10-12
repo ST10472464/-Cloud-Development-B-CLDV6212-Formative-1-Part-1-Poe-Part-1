@@ -1,14 +1,42 @@
 {
   "info": {
     "_postman_id": "78513ded-13e7-4914-b232-c8d9b16c7d05",
-    "name": "CLOUD DEVELOPMENT B CLDV6212-Poe Part 2",
+    "name": "CLOUD DEVELOPMENT B CLDV6212 - POE Part 2 (Order Queue)",
+    "description": "Part 2 order queue tests: places orders on order-processing-queue via POST /api/orders/queue, validates order field rejection rules, and verifies status updates in the Orders Azure Table.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "58191986",
     "_collection_link": "https://go.postman.co/collection/58191986-78513ded-13e7-4914-b232-c8d9b16c7d05?source=collection_link"
   },
   "item": [
     {
-      "name": "New Request",
+      "name": "1. Place Order - Valid (expect 200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Order was queued successfully', function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.message).to.eql('Order queued successfully');",
+              "    pm.expect(body.orderId).to.eql('ORD-2026-8801');",
+              "});",
+              "",
+              "pm.test('Response is JSON', function () {",
+              "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+              "});",
+              "",
+              "pm.test('Response time under 2000 ms', function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+              "});"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "POST",
         "header": [
@@ -27,14 +55,11 @@
           }
         },
         "url": {
-          "raw": "http://localhost:7071/api/orders/queue",
-          "protocol": "http",
+          "raw": "{{baseUrl}}/orders/queue",
           "host": [
-            "localhost"
+            "{{baseUrl}}"
           ],
-          "port": "7071",
           "path": [
-            "api",
             "orders",
             "queue"
           ]
@@ -43,7 +68,24 @@
       "response": []
     },
     {
-      "name": "New Request Copy",
+      "name": "2. Place Order - Rejected: TotalPrice 0 (expect 400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 400 Bad Request', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Validation rejects a non-positive TotalPrice', function () {",
+              "    pm.expect(pm.response.text()).to.include('TotalPrice');",
+              "});"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "POST",
         "header": [
@@ -54,7 +96,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"OrderId\": \"ORD-2026-8898\",\r\n  \"CustomerName\": \"Carol White\",\r\n  \"SelectedItemSKUs\": [\"COF-001\"],\r\n  \"TotalPrice\": 0\r\n}",
+          "raw": "{\r\n  \"OrderId\": \"ORD-2026-8898\",\r\n  \"CustomerName\": \"Carol White\",\r\n  \"SelectedItemSKUs\": [\"COF-001\"],\r\n  \"TotalPrice\": 0,\r\n  \"OrderTimestamp\": \"2026-10-12T10:30:00Z\"\r\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -62,16 +104,202 @@
           }
         },
         "url": {
-          "raw": "http://localhost:7071/api/orders/queue",
-          "protocol": "http",
+          "raw": "{{baseUrl}}/orders/queue",
           "host": [
-            "localhost"
+            "{{baseUrl}}"
           ],
-          "port": "7071",
           "path": [
-            "api",
             "orders",
             "queue"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3. Place Order - Rejected: Missing OrderId (expect 400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 400 Bad Request', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Validation rejects a missing OrderId', function () {",
+              "    pm.expect(pm.response.text()).to.include('OrderId');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"CustomerName\": \"Thabo Nkosi\",\r\n  \"SelectedItemSKUs\": [\"PAS-104\"],\r\n  \"TotalPrice\": 32.50,\r\n  \"OrderTimestamp\": \"2026-10-12T10:45:00Z\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/orders/queue",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "orders",
+            "queue"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "4. Place Order - Rejected: Empty SelectedItemSKUs (expect 400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 400 Bad Request', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Validation rejects an empty SKU list', function () {",
+              "    pm.expect(pm.response.text()).to.include('SKU');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"OrderId\": \"ORD-2026-8902\",\r\n  \"CustomerName\": \"Ayesha Patel\",\r\n  \"SelectedItemSKUs\": [],\r\n  \"TotalPrice\": 40.00,\r\n  \"OrderTimestamp\": \"2026-10-12T11:00:00Z\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/orders/queue",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "orders",
+            "queue"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "5. Get Order Status from Orders Table (expect 200 or 404)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Endpoint responds with 200 or 404', function () {",
+              "    pm.expect([200, 404]).to.include(pm.response.code);",
+              "});",
+              "",
+              "if (pm.response.code === 200) {",
+              "    pm.test('Order record carries a lifecycle status', function () {",
+              "        const body = pm.response.json();",
+              "        pm.expect(body).to.have.property('Status');",
+              "        pm.expect(body).to.have.property('RowKey');",
+              "        pm.expect(['Received', 'Preparing', 'Ready', 'Collected']).to.include(body.Status);",
+              "    });",
+              "",
+              "    pm.test('PartitionKey is the order date (yyyy-MM-dd)', function () {",
+              "        const body = pm.response.json();",
+              "        pm.expect(body.PartitionKey).to.match(/^\\d{4}-\\d{2}-\\d{2}$/);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/orders/{{orderDate}}/{{orderId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "orders",
+            "{{orderDate}}",
+            "{{orderId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "6. List Orders by Date from Orders Table (expect 200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response is an array of order records', function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body).to.be.an('array');",
+              "});",
+              "",
+              "pm.test('Each order has an Id, customer and status', function () {",
+              "    const body = pm.response.json();",
+              "    body.forEach(function (order) {",
+              "        pm.expect(order).to.have.property('RowKey');",
+              "        pm.expect(order).to.have.property('CustomerName');",
+              "        pm.expect(order).to.have.property('Status');",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/orders/{{orderDate}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "orders",
+            "{{orderDate}}"
           ]
         }
       },
@@ -81,7 +309,15 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": ""
+      "value": "http://localhost:7071/api"
+    },
+    {
+      "key": "orderDate",
+      "value": "2026-10-12"
+    },
+    {
+      "key": "orderId",
+      "value": "ORD-2026-8801"
     }
   ]
 }
