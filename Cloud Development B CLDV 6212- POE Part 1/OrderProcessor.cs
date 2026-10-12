@@ -49,6 +49,10 @@ namespace CoffeeNChill.Functions
 
             await tableClient.AddEntityAsync(entity);
             _logger.LogInformation("Order {OrderId} status: Received.", order.OrderId);
+
+            await AdvanceStatusAsync(tableClient, entity, "Preparing", 2000, order.OrderId);
+            await AdvanceStatusAsync(tableClient, entity, "Ready", 3000, order.OrderId);
+            await AdvanceStatusAsync(tableClient, entity, "Collected", 2000, order.OrderId);
         }
 
         internal static Order? ParseOrder(string queueMessage)
@@ -79,6 +83,17 @@ namespace CoffeeNChill.Functions
             {
                 return null;
             }
+        }
+
+        // Re-fetch for ETag, then move to the next barista stage.
+        private async Task AdvanceStatusAsync(TableClient tableClient, OrderEntity entity, string status, int delayMs, string orderId)
+        {
+            await Task.Delay(delayMs);
+            var current = (await tableClient.GetEntityAsync<OrderEntity>(entity.PartitionKey, entity.RowKey)).Value;
+            current.Status = status;
+            await tableClient.UpdateEntityAsync(current, current.ETag, TableUpdateMode.Replace);
+            entity.ETag = current.ETag;
+            _logger.LogInformation("Order {OrderId} status: {Status}.", orderId, status);
         }
     }
 }
