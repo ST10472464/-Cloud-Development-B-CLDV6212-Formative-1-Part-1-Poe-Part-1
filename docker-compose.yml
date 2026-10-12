@@ -37,7 +37,7 @@ services:
     restart: unless-stopped
 
   functions:
-    image: st10466873/coffeenchill-functions:v2.0
+    image: st10472501/coffeenchill-functions:v2.0
     container_name: coffeenchill-functions
     ports:
       - "7071:80"

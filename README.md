@@ -100,7 +100,7 @@ If the queue connection fails, the endpoint logs the exception and returns `500 
 |--------|--------------|
 | Keyur Keshav (TM1) | `POST /api/orders/queue` producer: validates the order payload, serializes it to JSON, Base64-encodes it and pushes it onto `order-processing-queue` without blocking the client. Added the `Order` model. |
 | Yadav Iserbelas (TM2) | `ProcessOrderQueue` `[QueueTrigger("order-processing-queue")]`: parses the JSON message, writes the row into the `Orders` table as `Received`, then simulates `Received → Preparing → Ready → Collected`. Poison-queue forwarding on failure. `GET /api/orders/{date}` and `GET /api/orders/{date}/{orderId}` for Postman verification. |
-| Saiyen Subban (TM3) | Root `docker-compose.yml` orchestrating Azurite + the Functions host from Docker Hub image `st10466873/coffeenchill-functions:v2.0` on a custom bridge network with a persistent Azurite volume. Built, tagged and pushed the v2.0 image. Expanded the Part 2 Postman collection (renamed requests, status-poll GETs, negative test). Fixed the team table and wrote this Part 2 documentation. |
+| Saiyen Subban (TM3) | Root `docker-compose.yml` orchestrating Azurite + the Functions host from Docker Hub image `st10472501/coffeenchill-functions:v2.0` on a custom bridge network with a persistent Azurite volume. Authored the compose services; the `v2.0` image is published on Docker Hub under `st10472501`. Expanded the Part 2 Postman collection (renamed requests, status-poll GETs, negative test). Fixed the team table and wrote this Part 2 documentation. |
 
 ### Part 2 Order Endpoints
 
@@ -158,7 +158,7 @@ The compose file lives at the repository root and pulls the application image **
 | Service | Image | Ports |
 |---|---|---|
 | `azurite` | `mcr.microsoft.com/azure-storage/azurite:3.34.0` | `10000` (Blob), `10001` (Queue), `10002` (Table) |
-| `functions` | `st10466873/coffeenchill-functions:v2.0` | `7071` (HTTP) |
+| `functions` | `st10472501/coffeenchill-functions:v2.0` | `7071` (HTTP) |
 
 ```bash
 git clone https://github.com/ST10472464/-Cloud-Development-B-CLDV6212-Formative-1-Part-1-Poe-Part-1.git
@@ -179,13 +179,13 @@ Compose details worth noting:
 
 | Image | Tag | Link |
 |---|---|---|
-| `st10466873/coffeenchill-functions` | `v2.0` | https://hub.docker.com/r/st10466873/coffeenchill-functions |
+| `st10472501/coffeenchill-functions` | `v2.0` | https://hub.docker.com/r/st10472501/coffeenchill-functions |
 
 ### Rebuilding and Pushing the Image (maintainers only)
 
 ```bash
-docker build -t st10466873/coffeenchill-functions:v2.0 .
-docker push st10466873/coffeenchill-functions:v2.0
+docker build -t st10472501/coffeenchill-functions:v2.0 .
+docker push st10472501/coffeenchill-functions:v2.0
 ```
 
 ---
@@ -385,9 +385,9 @@ func start
 
 **Part 2**
 
-- Wrote the root `docker-compose.yml`: Azurite (ports 10000-10002, `azurite-data` volume, healthcheck) plus the Functions host from Docker Hub image `st10466873/coffeenchill-functions:v2.0`
+- Wrote the root `docker-compose.yml`: Azurite (ports 10000-10002, `azurite-data` volume, healthcheck) plus the Functions host from Docker Hub image `st10472501/coffeenchill-functions:v2.0`
 - Pointed `AzureWebJobsStorage` at the Azurite **service name** so the queue trigger resolves storage over the compose bridge network (never `127.0.0.1`)
-- Built, tagged and pushed `st10466873/coffeenchill-functions:v2.0` to Docker Hub and verified a clean pull-and-up run
+- Authored the compose services (Azurite ports/healthcheck/volume, Functions host, bridge network); the `v2.0` image is built, tagged and published on Docker Hub under `st10472501`
 - Expanded the Part 2 Postman collection: renamed the requests, kept the Jane Smith sample body, added both GET endpoints and the `TotalPrice: 0 → 400` negative test
 - Fixed the team roles table and documented the Part 2 changelog, compose workflow and Docker Hub images
 
