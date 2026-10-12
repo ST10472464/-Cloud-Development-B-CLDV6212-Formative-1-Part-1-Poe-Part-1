@@ -461,7 +461,7 @@ Every request carries automated test assertions. Run request **1** first so the 
 
 ---
 
-## References
+## References Part 1
 
 - Docker. (n.d.). What is Docker? Retrieved from Docker Documentation: https://docs.docker.com/get-started/docker-overview/
 
@@ -492,6 +492,24 @@ Every request carries automated test assertions. Run request **1** first so the 
 - Postman. (n.d.). Work with API response data and cookies in Postman. Retrieved from Postman Documentation: https://learning.postman.com/docs/use/send-requests/response-data/response-data/
 
 - Postman. (n.d.). Writing tests in Postman. Retrieved from Postman Documentation: https://learning.postman.com/docs/tests-and-scripts/write-scripts/test-scripts/
+
+---
+
+## References Part 2
+
+- Microsoft. (n.d.). Azure Functions error handling and retries. Retrieved from Microsoft Learn: https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-error-pages?tabs=fixed-delay%2Cisolated-process%2Cnode-v4%2Cpython-v2&pivots=programming-language-csharp
+
+- Microsoft. (n.d.). Azure Functions HTTP triggers and bindings overview. Retrieved from Microsoft Learn: https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-http-webhook?tabs=isolated-process&pivots=programming-language-csharp
+
+- Microsoft. (n.d.). Azure Queue storage trigger and bindings for Azure Functions overview. Retrieved from Microsoft Learn: https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-storage-queue?tabs=isolated-process%2Cextensionv5&pivots=programming-language-csharp
+
+- Microsoft. (n.d.). Convert.ToBase64String Method (System). Retrieved from Microsoft Learn: https://learn.microsoft.com/en-us/dotnet/api/system.convert.tobase64string?view=net-10.0
+
+- Microsoft. (n.d.). Guide for running C# Azure Functions in the isolated worker model. Retrieved from Microsoft Learn: https://learn.microsoft.com/en-us/azure/azure-functions/dotnet-isolated-process-guide?tabs=ihostapplicationbuilder%2Cconfig%2Cwindows#logging
+
+- Microsoft. (n.d.). JSON serialization and deserialization in .NET - overview. Retrieved from Microsoft Learn: https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/overview
+
+- Microsoft. (n.d.). Use the Azurite emulator for local Azure Storage development. Retrieved from Microsoft Learn: https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite
 
 ---
 
