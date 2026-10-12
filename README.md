@@ -157,7 +157,7 @@ The `local.settings.json` file points to Azurite using the development storage c
 ### 4. Run the Functions locally
 
 ```bash
-cd "Cloud Development B CLDV 6212- POE Part 1"
+cd "Cloud Development B CLDV 6212- POE Part 2"
 func start
 ```
 
