@@ -1,6 +1,6 @@
 FROM mcr.microsoft.com/azure-storage/azurite:latest
 
-LABEL maintainer="Saiyen Subban - ST10472464"
+LABEL maintainer="Saiyen Subban - ST10466873"
 LABEL description="CoffeeNChill Azurite storage emulator for local Azure Functions development"
 LABEL version="1.0"
 
