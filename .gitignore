@@ -1,0 +1,5 @@
+# Root ignores — project .gitignore covers bin/obj inside the function app
+.vs/
+bin/
+obj/
+*.user
