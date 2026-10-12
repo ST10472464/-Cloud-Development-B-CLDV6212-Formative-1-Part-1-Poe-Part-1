@@ -12,6 +12,7 @@ namespace CoffeeNChill.Functions
         private readonly ILogger<OrderProcessor> _logger;
         private readonly string _connectionString;
         private const string OrdersTableName = "Orders";
+        private const string PoisonQueueName = "order-processing-queue-poison";
 
         public OrderProcessor(ILogger<OrderProcessor> logger)
         {
@@ -28,31 +29,41 @@ namespace CoffeeNChill.Functions
             if (order == null || string.IsNullOrWhiteSpace(order.OrderId))
             {
                 _logger.LogError("Invalid order payload in queue message (length {Length}).", queueMessage?.Length ?? 0);
+                await SendToPoisonQueueAsync(queueMessage, "unparsable-or-missing-OrderId");
                 throw new InvalidOperationException("Invalid order payload; sent to poison queue after retries.");
             }
 
             _logger.LogInformation("Processing order {OrderId} for {CustomerName}.", order.OrderId, order.CustomerName);
 
-            var tableClient = new TableClient(_connectionString, OrdersTableName);
-            await tableClient.CreateIfNotExistsAsync();
-
-            var entity = new OrderEntity
+            try
             {
-                PartitionKey = order.OrderTimestamp.ToString("yyyy-MM-dd"),
-                RowKey = order.OrderId,
-                CustomerName = order.CustomerName,
-                SelectedItemSKUs = string.Join(",", order.SelectedItemSKUs ?? new List<string>()),
-                TotalPrice = order.TotalPrice,
-                Status = "Received",
-                OrderTimestamp = order.OrderTimestamp
-            };
+                var tableClient = new TableClient(_connectionString, OrdersTableName);
+                await tableClient.CreateIfNotExistsAsync();
 
-            await tableClient.AddEntityAsync(entity);
-            _logger.LogInformation("Order {OrderId} status: Received.", order.OrderId);
+                var entity = new OrderEntity
+                {
+                    PartitionKey = order.OrderTimestamp == default ? DateTime.UtcNow.ToString("yyyy-MM-dd") : order.OrderTimestamp.ToString("yyyy-MM-dd"),
+                    RowKey = order.OrderId,
+                    CustomerName = order.CustomerName,
+                    SelectedItemSKUs = string.Join(",", order.SelectedItemSKUs ?? new List<string>()),
+                    TotalPrice = order.TotalPrice,
+                    Status = "Received",
+                    OrderTimestamp = order.OrderTimestamp == default ? DateTime.UtcNow : order.OrderTimestamp
+                };
 
-            await AdvanceStatusAsync(tableClient, entity, "Preparing", 2000, order.OrderId);
-            await AdvanceStatusAsync(tableClient, entity, "Ready", 3000, order.OrderId);
-            await AdvanceStatusAsync(tableClient, entity, "Collected", 2000, order.OrderId);
+                await tableClient.AddEntityAsync(entity);
+                _logger.LogInformation("Order {OrderId} status: Received.", order.OrderId);
+
+                await AdvanceStatusAsync(tableClient, entity, "Preparing", 2000, order.OrderId);
+                await AdvanceStatusAsync(tableClient, entity, "Ready", 3000, order.OrderId);
+                await AdvanceStatusAsync(tableClient, entity, "Collected", 2000, order.OrderId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing order {OrderId}; forwarding to poison queue.", order.OrderId);
+                await SendToPoisonQueueAsync(queueMessage, $"processing-failed-{order.OrderId}");
+                throw;
+            }
         }
 
         internal static Order? ParseOrder(string queueMessage)
@@ -94,6 +105,21 @@ namespace CoffeeNChill.Functions
             await tableClient.UpdateEntityAsync(current, current.ETag, TableUpdateMode.Replace);
             entity.ETag = current.ETag;
             _logger.LogInformation("Order {OrderId} status: {Status}.", orderId, status);
+        }
+
+        private async Task SendToPoisonQueueAsync(string originalMessage, string reason)
+        {
+            try
+            {
+                var poisonClient = new Azure.Storage.Queues.QueueClient(_connectionString, PoisonQueueName);
+                await poisonClient.CreateIfNotExistsAsync();
+                await poisonClient.SendMessageAsync(Convert.ToBase64String(Encoding.UTF8.GetBytes(originalMessage ?? string.Empty)));
+                _logger.LogWarning("Forwarded failing queue message to {Poison} ({Reason}).", PoisonQueueName, reason);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to forward message to {Poison}.", PoisonQueueName);
+            }
         }
     }
 }
