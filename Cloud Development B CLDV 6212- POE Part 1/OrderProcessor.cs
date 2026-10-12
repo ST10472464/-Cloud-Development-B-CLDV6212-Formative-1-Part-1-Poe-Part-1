@@ -1,7 +1,9 @@
 using Azure.Data.Tables;
 using Cloud_Development_B_CLDV_6212__POE_Part_1;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 
@@ -107,7 +109,7 @@ namespace CoffeeNChill.Functions
             _logger.LogInformation("Order {OrderId} status: {Status}.", orderId, status);
         }
 
-        private async Task SendToPoisonQueueAsync(string originalMessage, string reason)
+        private async Task SendToPoisonQueueAsync(string? originalMessage, string reason)
         {
             try
             {
@@ -120,6 +122,50 @@ namespace CoffeeNChill.Functions
             {
                 _logger.LogError(ex, "Failed to forward message to {Poison}.", PoisonQueueName);
             }
+        }
+
+        // Lets Postman verify lifecycle: GET /api/orders/{date}/{orderId}.
+        [Function("GetOrderStatus")]
+        public async Task<HttpResponseData> GetOrderStatus(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "orders/{date}/{orderId}")] HttpRequestData req,
+            string date, string orderId)
+        {
+            var tableClient = new TableClient(_connectionString, OrdersTableName);
+            await tableClient.CreateIfNotExistsAsync();
+
+            try
+            {
+                var entity = (await tableClient.GetEntityAsync<OrderEntity>(date, orderId)).Value;
+                var response = req.CreateResponse(HttpStatusCode.OK);
+                await response.WriteAsJsonAsync(entity);
+                return response;
+            }
+            catch (Azure.RequestFailedException ex) when (ex.Status == 404)
+            {
+                var notFound = req.CreateResponse(HttpStatusCode.NotFound);
+                await notFound.WriteStringAsync($"Order '{orderId}' on '{date}' not found.");
+                return notFound;
+            }
+        }
+
+        // Lists one day of orders: GET /api/orders/{date}.
+        [Function("GetOrdersByDate")]
+        public async Task<HttpResponseData> GetOrdersByDate(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "orders/{date}")] HttpRequestData req,
+            string date)
+        {
+            var tableClient = new TableClient(_connectionString, OrdersTableName);
+            await tableClient.CreateIfNotExistsAsync();
+
+            var orders = new List<OrderEntity>();
+            await foreach (var entity in tableClient.QueryAsync<OrderEntity>(filter: $"PartitionKey eq '{date}'"))
+            {
+                orders.Add(entity);
+            }
+
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            await response.WriteAsJsonAsync(orders);
+            return response;
         }
     }
 }
