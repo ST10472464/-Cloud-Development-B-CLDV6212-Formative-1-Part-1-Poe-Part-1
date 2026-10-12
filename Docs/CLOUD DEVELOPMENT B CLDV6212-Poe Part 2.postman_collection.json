@@ -2,13 +2,39 @@
   "info": {
     "_postman_id": "78513ded-13e7-4914-b232-c8d9b16c7d05",
     "name": "CLOUD DEVELOPMENT B CLDV6212-Poe Part 2",
+    "description": "Part 2 - Peak-hour asynchronous order workflow.\n\nRun order:\n1. Queue Order (Jane Smith) - POST places a Base64 JSON message on order-processing-queue (200 OK).\n2. Get Order Status by Date and OrderId - poll repeatedly (~every 2s for ~10s) and watch Status march Received -> Preparing -> Ready -> Collected in the Orders table.\n3. Get Orders by Date - lists every order for the PartitionKey (OrderDate).\n4. Queue Order - Invalid TotalPrice (negative test) - expects 400 Bad Request, nothing is queued.\n\nCollection variables: {{baseUrl}} (default http://localhost:7071/api), {{date}} and {{orderId}} are set automatically by the first request.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "58191986",
-    "_collection_link": "https://go.postman.co/collection/58191986-78513ded-13e7-4914-b232-c8d9b16c7d05?source=collection_link"
+    "_exporter_id": "58191986"
   },
   "item": [
     {
-      "name": "New Request",
+      "name": "1. Queue Order (Jane Smith) - POST /api/orders/queue",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response confirms the order was queued', function () {",
+              "    const data = pm.response.json();",
+              "    pm.expect(data.message).to.eql('Order queued successfully');",
+              "    pm.expect(data.orderId).to.eql('ORD-2026-8801');",
+              "});",
+              "",
+              "// Feed {{date}} and {{orderId}} into the follow-up GET requests.",
+              "const body = JSON.parse(pm.request.body.raw);",
+              "pm.collectionVariables.set('orderId', body.OrderId);",
+              "pm.collectionVariables.set('date', body.OrderTimestamp.slice(0, 10));",
+              "",
+              "console.log('Queued ' + body.OrderId + ' for PartitionKey ' + pm.collectionVariables.get('date'));"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "POST",
         "header": [
@@ -19,7 +45,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"OrderId\": \"ORD-2026-8801\",\r\n  \"CustomerName\": \"Jane Smith\",\r\n  \"SelectedItemSKUs\": [\"COF-001\", \"PAS-104\"],\r\n  \"TotalPrice\": 65.00,\r\n  \"OrderTimestamp\": \"2026-10-12T10:15:00Z\"\r\n}",
+          "raw": "{\n  \"OrderId\": \"ORD-2026-8801\",\n  \"CustomerName\": \"Jane Smith\",\n  \"SelectedItemSKUs\": [\"COF-001\", \"PAS-104\"],\n  \"TotalPrice\": 65.00,\n  \"OrderTimestamp\": \"2026-10-12T10:15:00Z\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -27,23 +53,118 @@
           }
         },
         "url": {
-          "raw": "http://localhost:7071/api/orders/queue",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "7071",
-          "path": [
-            "api",
-            "orders",
-            "queue"
-          ]
-        }
+          "raw": "{{baseUrl}}/orders/queue",
+          "host": ["{{baseUrl}}"],
+          "path": ["orders", "queue"]
+        },
+        "description": "Producer endpoint (Keyur). Serializes the order to JSON, Base64-encodes it and pushes one message onto the order-processing-queue in Azurite. Non-blocking: the client gets 200 immediately and the QueueTrigger picks the message up in the background."
       },
       "response": []
     },
     {
-      "name": "New Request Copy",
+      "name": "2. Get Order Status by Date and OrderId - GET /api/orders/{date}/{orderId}",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Order entity matches the queued order', function () {",
+              "    const order = pm.response.json();",
+              "    pm.expect(order.RowKey).to.eql(pm.collectionVariables.get('orderId'));",
+              "    pm.expect(order.PartitionKey).to.eql(pm.collectionVariables.get('date'));",
+              "    pm.expect(order.CustomerName).to.eql('Jane Smith');",
+              "    pm.expect(order.TotalPrice).to.eql(65);",
+              "});",
+              "",
+              "pm.test('Status is on the Received -> Preparing -> Ready -> Collected path', function () {",
+              "    const order = pm.response.json();",
+              "    pm.expect(['Received', 'Preparing', 'Ready', 'Collected']).to.include(order.Status);",
+              "    console.log('Current status: ' + order.Status);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/orders/{{date}}/{{orderId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["orders", "{{date}}", "{{orderId}}"]
+        },
+        "description": "Polls the Orders table (PartitionKey = OrderDate, RowKey = OrderId). Send this every ~2 seconds after request 1: the queue-triggered ProcessOrderQueue function walks the order Received -> Preparing (2s) -> Ready (3s) -> Collected (2s)."
+      },
+      "response": []
+    },
+    {
+      "name": "3. Get Orders by Date - GET /api/orders/{date}",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response is an array of order entities', function () {",
+              "    const orders = pm.response.json();",
+              "    pm.expect(orders).to.be.an('array');",
+              "});",
+              "",
+              "pm.test('Jane Smith order appears in the daily list', function () {",
+              "    const orders = pm.response.json();",
+              "    const ids = orders.map(function (o) { return o.RowKey; });",
+              "    pm.expect(ids).to.include(pm.collectionVariables.get('orderId'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/orders/{{date}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["orders", "{{date}}"]
+        },
+        "description": "Lists every order stored in the Orders table for one OrderDate (PartitionKey)."
+      },
+      "response": []
+    },
+    {
+      "name": "4. Queue Order - Invalid TotalPrice (negative test) - expects 400",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 400 Bad Request', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Validation rejects TotalPrice <= 0', function () {",
+              "    pm.expect(pm.response.text()).to.include('TotalPrice must be greater than zero');",
+              "});",
+              "",
+              "pm.test('Nothing was written to the Orders table for this order', function () {",
+              "    // The producer refuses the message before it reaches the queue,",
+              "    // so ProcessOrderQueue never creates a row for ORD-2026-8898.",
+              "    pm.expect(pm.response.text()).to.not.include('ORD-2026-8898');",
+              "});"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "POST",
         "header": [
@@ -54,7 +175,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"OrderId\": \"ORD-2026-8898\",\r\n  \"CustomerName\": \"Carol White\",\r\n  \"SelectedItemSKUs\": [\"COF-001\"],\r\n  \"TotalPrice\": 0\r\n}",
+          "raw": "{\n  \"OrderId\": \"ORD-2026-8898\",\n  \"CustomerName\": \"Carol White\",\n  \"SelectedItemSKUs\": [\"COF-001\"],\n  \"TotalPrice\": 0\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -62,18 +183,11 @@
           }
         },
         "url": {
-          "raw": "http://localhost:7071/api/orders/queue",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "7071",
-          "path": [
-            "api",
-            "orders",
-            "queue"
-          ]
-        }
+          "raw": "{{baseUrl}}/orders/queue",
+          "host": ["{{baseUrl}}"],
+          "path": ["orders", "queue"]
+        },
+        "description": "Negative test: TotalPrice of 0 must be rejected with 400 Bad Request and no queue message is created."
       },
       "response": []
     }
@@ -81,7 +195,15 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": ""
+      "value": "http://localhost:7071/api"
+    },
+    {
+      "key": "date",
+      "value": "2026-10-12"
+    },
+    {
+      "key": "orderId",
+      "value": "ORD-2026-8801"
     }
   ]
 }
