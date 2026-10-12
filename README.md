@@ -264,6 +264,9 @@ Alternatively, upload with a custom file name via `POST /api/documents/upload/{f
 | Last Modified | datetime | Timestamp of last modification          |
 | Content Type  | string | MIME type of the stored blob             |
 
+## YouTube Link Part 2
+https://youtu.be/Gqj6Svw36YA 
+
 ### MenuItems Table Schema
 
 | Property | Type | Notes |
