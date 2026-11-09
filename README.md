@@ -1,22 +1,26 @@
-# CoffeeNChill - Cloud Development B (CLDV6212) POE Part 1 & Part 2
+# CoffeeNChill - Cloud Development B (CLDV6212) POE Part 1, Part 2 & Part 3
 
-## Formative Assessment 1 - Part 2: Queue Triggers & Docker Compose Orchestration
+## Formative Assessment - Part 1, Part 2 & Part 3
 
 ---
 
 ### Team Members
 
-| Name | Role | Part 2 Focus |
-|------|------|--------------|
-| Keyur Keshav (ST10472464) | Team Member 1 | Queue producer (`POST /api/orders/queue`) |
-| Yadav Iserbelas (ST10472501) | Team Member 2 | Queue trigger (`ProcessOrderQueue`) + Orders table |
-| Saiyen Subban (ST10466873) | Team Member 3 | Docker Compose orchestration, Docker Hub, Postman, docs |
+| Name | Role | Part 2 Focus | Part 3 Focus |
+|------|------|--------------|--------------|
+| Keyur Keshav (ST10472464) | Team Member 1 | Queue producer (`POST /api/orders/queue`) | Authentication engine, `Users` Azure Table, JWT issuance, API gateway (Swagger, DTOs, global error handling), business scenario & access-tier documentation |
+| Yadav Iserbelas (ST10472501) | Team Member 2 | Queue trigger (`ProcessOrderQueue`) + Orders table | Live VPS production deployment & container orchestration |
+| Saiyen Subban (ST10466873) | Team Member 3 | Docker Compose orchestration, Docker Hub, Postman, docs | Automated CI/CD pipeline, gateway routing & role-based authorization policies |
 
 ---
 
 ## Project Overview
 
-CoffeeNChill is a cloud-enabled canteen management system for a campus environment. This repository contains **Part 2** of the POE: asynchronous order queuing via Azure Storage Queues, a queue-triggered Azure Function that tracks the order lifecycle in Azure Table Storage, and multi-container orchestration with Docker Compose pulling images from Docker Hub - all running locally against the **Azurite** storage emulator.
+CoffeeNChill is a cloud-enabled canteen management system for a campus environment. This repository contains **Parts 1, 2 and 3** of the POE:
+
+- **Part 1** - Azure Table Storage Menu CRUD API and Azure Blob Storage document API (the foundation).
+- **Part 2** - asynchronous order queuing via Azure Storage Queues, a queue-triggered Azure Function that tracks the order lifecycle in Azure Table Storage, and multi-container orchestration with Docker Compose pulling images from Docker Hub - all running locally against the **Azurite** storage emulator.
+- **Part 3** - a secure ASP.NET Core **API Gateway** fronting the whole system with Swagger/OpenAPI, JWT Bearer authentication, BCrypt password hashing and role-based authorization against a `Users` Azure Table.
 
 During break times hundreds of students order simultaneously and synchronous processing crashes the system. Part 2 fixes this: order submission never blocks the client — the order is written to an Azure Storage Queue and a background Azure Function processes it, logging it into an Orders Azure Table and advancing its preparation status `Received → Preparing → Ready → Collected`.
 
@@ -190,6 +194,314 @@ docker push st10472501/coffeenchill-functions:v2.0
 
 ---
 
+## Part 3 - Secure API Gateway & JWT Authentication
+
+### Business Scenario Context (Section 1)
+
+CoffeeNChill serves a campus canteen during peak break times. Parts 1 and 2 proved the storage
+layer works: menu items live in Azure Table Storage, staff documents in Azure Blob Storage, and
+orders flow through an Azure Storage Queue into an `Orders` table. What Parts 1 and 2 did **not**
+do is protect any of it. Every endpoint was reachable by anyone who could reach the port, and the
+function host had no notion of *who* was calling.
+
+That is the gap Part 3 closes, and it is a real operational problem rather than a checkbox:
+
+- **Students must self-serve.** Hundreds of students browse the menu and queue orders during a
+  break. That traffic is legitimate and has to stay frictionless - forcing a login to read a menu
+  would stall the queue at the counter.
+- **Staff must not be students.** A student must not be able to change a price, mark their own
+  order `Collected`, or read the canteen's operational documents. Those actions move money and
+  stock, so they need an authenticated, auditable identity.
+- **Secrets must not be guessable.** A canteen system holds staff documents and pricing rules.
+  Credentials therefore cannot travel in clear text, and cannot be recoverable from the database
+  if it is ever dumped.
+
+The design answer is a single **unified gateway**: one public entry point that fronts the whole
+system, decides per-route whether a caller may proceed, and issues signed JWTs so that decision is
+made from a token rather than from trust. The gateway is the only component that needs to be
+public; everything behind it (the Functions host, tables, blobs and queue) can stay internal.
+
+#### Business Roles
+
+| Role | Who they are | What they need to do |
+|------|--------------|----------------------|
+| **Customer** | A student placing an order | Browse the menu, queue an order, check their order status |
+| **Staff** | A barista or canteen attendant | Everything a customer can do, plus maintain the menu, manage staff documents and advance orders through their lifecycle |
+| **Admin** | The canteen manager | Everything staff can do, plus manage accounts and configuration |
+
+### Access Tiers (Section 1)
+
+Authorization is deliberately **not** uniform. The brief specifies a strict split between traffic
+that must stay open and traffic that must be gated, and the gateway implements exactly that split:
+
+| Tier | Who | Endpoints | Mechanism |
+|------|-----|-----------|-----------|
+| **Public** | Anonymous students, no token | `GET /api/menu`, `GET /api/menu/category/{category}`, `GET /api/orders/{date}`, `GET /api/orders/{date}/{orderId}`, `POST /api/orders/queue`, `POST /api/auth/register`, `POST /api/auth/login` | `[AllowAnonymous]` |
+| **Authenticated** | Any valid token holder | `GET /api/auth/me` | `[Authorize]` |
+| **Admin / Staff** | Valid token whose `ClaimTypes.Role` is `Admin` or `Staff` | `POST`, `PUT`, `DELETE /api/menu`, `GET`, `POST`, `DELETE /api/documents`, `GET /api/documents/download/{fileName}`, `PUT /api/orders/status` | `[Authorize(Roles = "Admin,Staff")]` |
+
+The two rules that follow from the table:
+
+1. **Reads that a student needs are open; writes that affect the business are not.** Ordering
+   stays frictionless because `POST /api/orders/queue` is anonymous, but changing a price or an
+   order status requires a staff token.
+2. **The role travels inside the token, not in the request.** A caller cannot claim to be staff by
+   sending a header - the gateway re-validates the signature on every request and reads the role
+   from the signed claims, so the only way to hold the `Staff` role is to have logged in with a
+   staff account.
+
+Swagger UI renders this split visually: the 9 public operations carry no lock, and the 9
+protected operations show a padlock and require an `Authorization: Bearer <token>` value.
+
+---
+
+### Part 3 - Technical Specifications & Endpoints (Section 2)
+
+#### Architecture
+
+```
+Client (Postman / Swagger UI / mobile app)
+        |
+        |  HTTPS + optional "Authorization: Bearer <jwt>"
+        v
++----------------------------------------------+
+|  CoffeeNChill.ApiGateway  (ASP.NET Core)     |   <-- single public entry point
+|  - Swagger / OpenAPI (Swashbuckle, XML docs) |
+|  - JWT Bearer validation                     |
+|  - Global exception middleware (problem+json)|
+|  - DTOs + explicit model mapping             |
++----------------------------------------------+
+        |                 |                 |                |
+        v                 v                 v                v
+   Users Table      MenuItems Table     Orders Table    staff-documents
+   (auth)           Menu CRUD           status          Blob container
+        |
+        +---- order-processing-queue  (Azure Storage Queue)
+        |
+        +---- /api/functions/{**path}  passthrough to the Azure Functions host
+```
+
+The gateway talks to Azure Storage **directly** through the SDKs for the `Users`, `MenuItems` and
+`Orders` tables, the `staff-documents` blob container and the `order-processing-queue` queue, and
+additionally exposes `/api/functions/{**path}` as a passthrough to the Azure Functions host so the
+Part 1 / Part 2 function endpoints remain reachable through the same public origin.
+
+#### New Projects and Files
+
+| Path | Purpose |
+|------|---------|
+| `CoffeeNChill.ApiGateway/` | ASP.NET Core Web API gateway project (`net10.0`) |
+| `Program.cs` | Swagger, JWT Bearer validation, DI, CORS, middleware pipeline |
+| `Controllers/AuthController.cs` | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` |
+| `Controllers/MenuController.cs` | Menu CRUD with role-based authorization |
+| `Controllers/OrderController.cs` | Order queueing, reading and status transitions |
+| `Controllers/DocumentController.cs` | Staff document upload / list / download / delete |
+| `Controllers/FunctionsProxyController.cs` | Passthrough to the Azure Functions host |
+| `Services/PasswordHasher.cs` | BCrypt password hashing (cost factor 12) |
+| `Services/TokenService.cs` | Signed JWT issuance |
+| `Services/UserService.cs` | Registration and login against the `Users` table |
+| `Middleware/ExceptionHandlingMiddleware.cs` | Global exception-to-problem+json mapping |
+| `Swagger/AuthorizeCheckOperationFilter.cs` | Marks only protected operations as requiring Bearer |
+| `Models/UserProfile.cs` | `Users` Azure Table entity |
+
+#### Authentication Endpoints
+
+| Method | Route | Auth | Description | Status Codes |
+| ------ | ----- | ---- | ----------- | ------------ |
+| POST | `/api/auth/register` | `[AllowAnonymous]` | Hash the password with BCrypt and create a row in the `Users` table | `201`, `400`, `409` |
+| POST | `/api/auth/login` | `[AllowAnonymous]` | Validate credentials and issue a signed JWT Bearer token | `200`, `400`, `401` |
+| GET | `/api/auth/me` | `[Authorize]` | Echo the identity carried by the supplied token | `200`, `401` |
+
+##### Example - Register
+
+`POST http://localhost:5080/api/auth/register`
+
+```json
+{
+  "fullName": "Keyur Keshav",
+  "email": "keyur@coffeenchill.ac.za",
+  "password": "Str0ngPass!",
+  "role": "Admin"
+}
+```
+
+Returns `201 Created` with the created profile - **never** the password hash:
+
+```json
+{
+  "email": "keyur@coffeenchill.ac.za",
+  "fullName": "Keyur Keshav",
+  "role": "Admin",
+  "createdDate": "2026-11-09T20:43:11.9676375Z"
+}
+```
+
+Registering an address that already exists returns `409 Conflict`. `role` must be one of
+`Admin`, `Staff` or `Customer`; `password` must be at least 8 characters.
+
+##### Example - Login
+
+`POST http://localhost:5080/api/auth/login`
+
+```json
+{ "email": "keyur@coffeenchill.ac.za", "password": "Str0ngPass!" }
+```
+
+Returns `200 OK`:
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "tokenType": "Bearer",
+  "expiresAtUtc": "2026-11-09T21:49:20Z",
+  "email": "keyur@coffeenchill.ac.za",
+  "fullName": "Keyur Keshav",
+  "role": "Admin"
+}
+```
+
+An unknown email and a wrong password both return `401 Unauthorized` with the **same** message
+(`"Invalid email or password."`), so the endpoint cannot be used to discover which addresses are
+registered.
+
+#### JWT Claims
+
+The token is signed with HMAC-SHA256 using `Jwt:SecretKey` and carries the three claims the brief
+specifies, written as their full `ClaimTypes` URIs so `[Authorize(Roles = ...)]` resolves against
+them without any claim-type remapping:
+
+| Claim | Value for the example above |
+| ----- | --------------------------- |
+| `ClaimTypes.Name` | `Keyur Keshav` |
+| `ClaimTypes.Email` | `keyur@coffeenchill.ac.za` |
+| `ClaimTypes.Role` | `Admin` |
+
+Plus `ClaimTypes.NameIdentifier`, `jti`, `iat`, `iss` (`CoffeeNChill`), `aud` (`CoffeeNChill
+Clients`) and `exp`. Token lifetime is `Jwt:ExpiryMinutes` (60 by default).
+
+Decoded payload (abbreviated):
+
+```json
+{
+  "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name": "Yadav Iserbelas",
+  "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress": "yadav@coffeenchill.ac.za",
+  "http://schemas.microsoft.com/ws/2008/06/identity/claims/role": "Staff",
+  "iss": "CoffeeNChill",
+  "aud": "CoffeeNChill Clients",
+  "exp": 1794308960
+}
+```
+
+#### Users Table Schema
+
+`PartitionKey` is the **role** and `RowKey` is the **email**, exactly as the brief specifies, so a
+whole access tier can be scanned in one partition query while an email lookup remains unique
+across the table.
+
+| Property | Type | Notes |
+| -------- | ---- | ----- |
+| `PartitionKey` | string | Role: `Admin`, `Staff` or `Customer` |
+| `RowKey` | string | User email / username, unique across all partitions, normalised to lower case |
+| `PasswordHash` | string | Salted BCrypt hash (cost 12). **Never returned by any endpoint** |
+| `FullName` | string | Display name, surfaced as `ClaimTypes.Name` |
+| `CreatedDate` | datetime | UTC account creation timestamp |
+| `ETag` | ETag | Concurrency token (Azure Tables) |
+| `Timestamp` | datetime | Server-managed |
+
+#### Password Storage
+
+Passwords are hashed with **BCrypt** (`BCrypt.Net-Next`, work factor 12) rather than stored or
+plain-hashed. BCrypt is deliberately slow and memory-hard, embeds a fresh random salt in every
+hash, and records its own cost factor, which makes offline cracking of a stolen `Users` table
+impractical compared with a fast hash. `PasswordHash` is excluded from every DTO by the explicit
+mappers in `Mapping/Mappers.cs`, so a hash cannot leak through a serialisation accident.
+
+#### Role-Based Authorization Policies
+
+| Policy | Attribute | Applied to |
+| ------ | --------- | ---------- |
+| Public | `[AllowAnonymous]` | Menu reads, order queueing, order reads, register, login |
+| Any authenticated user | `[Authorize]` | `GET /api/auth/me` |
+| Staff or Admin | `[Authorize(Roles = "Admin,Staff")]` | Menu writes, document reads/writes, order status |
+
+#### API Gateway Endpoints (complete)
+
+| Method | Route | Auth | Description | Status Codes |
+| ------ | ----- | ---- | ----------- | ------------ |
+| POST | `/api/auth/register` | Public | Create an account | `201`, `400`, `409` |
+| POST | `/api/auth/login` | Public | Issue a JWT | `200`, `400`, `401` |
+| GET | `/api/auth/me` | Authenticated | Echo token identity | `200`, `401` |
+| GET | `/api/menu` | Public | List all menu items | `200` |
+| GET | `/api/menu/category/{category}` | Public | List a category | `200`, `400` |
+| POST | `/api/menu` | Admin, Staff | Create a menu item | `201`, `400`, `401`, `403`, `409` |
+| PUT | `/api/menu/{category}/{sku}` | Admin, Staff | Update a menu item | `200`, `400`, `401`, `403`, `404`, `409` |
+| DELETE | `/api/menu/{category}/{sku}` | Admin, Staff | Delete a menu item | `204`, `401`, `403`, `404` |
+| POST | `/api/orders/queue` | Public | Validate and enqueue an order | `200`, `400` |
+| GET | `/api/orders/{date}` | Public | List orders for a date | `200` |
+| GET | `/api/orders/{date}/{orderId}` | Public | Poll one order | `200`, `404` |
+| PUT | `/api/orders/status` | Admin, Staff | Advance order status | `200`, `400`, `401`, `403`, `404`, `409` |
+| GET | `/api/documents` | Admin, Staff | List staff documents | `200`, `401`, `403` |
+| POST | `/api/documents` | Admin, Staff | Upload a staff document (`multipart/form-data`) | `201`, `400`, `401`, `403` |
+| GET | `/api/documents/download/{fileName}` | Admin, Staff | Download a document | `200`, `401`, `403`, `404` |
+| DELETE | `/api/documents/{fileName}` | Admin, Staff | Delete a document | `204`, `401`, `403`, `404` |
+| GET | `/api/functions/{**path}` | Passthrough | Forward to the Azure Functions host | upstream, `503` |
+| POST | `/api/functions/{**path}` | Passthrough | Forward to the Azure Functions host | upstream, `503` |
+
+#### Swagger / OpenAPI
+
+- Swashbuckle UI served at `/swagger` in **every** environment, because the brief requires a
+  publicly reachable Swagger URL on the deployed instance for the walkthrough.
+- **XML documentation is generated and injected**, so all 18 operations carry a `<summary>`,
+  parameter documentation, and `<response>` codes that become the documented status responses.
+- 15 component schemas are emitted for the DTOs, each with property-level descriptions.
+- A `Bearer` HTTP security scheme (`bearerFormat: JWT`) is registered. The document-level
+  requirement is `[{"Bearer":[]}]`, and `AuthorizeCheckOperationFilter` writes an explicit empty
+  `security: []` on each `[AllowAnonymous]` operation so it overrides the global requirement.
+  Result: 9 public operations render without a lock, 9 protected operations render with one.
+- `EnablePersistAuthorization()` and `EnableTryItOutByDefault()` are enabled so a reviewer can
+  paste a token once and immediately exercise protected endpoints.
+
+#### DTO Pattern & Model Mapping
+
+Every endpoint accepts and returns a DTO rather than a storage entity. `Mapping/Mappers.cs`
+holds the conversions in one place, which is what guarantees internal fields - `PasswordHash`,
+`ETag`, `Timestamp` - can never be serialised by accident.
+
+| DTO | Used by |
+| --- | ------- |
+| `RegisterRequest`, `LoginRequest`, `AuthResponse`, `UserProfileDto` | `/api/auth/*` |
+| `MenuItemDto`, `CreateMenuItemRequest`, `UpdateMenuItemRequest` | `/api/menu` |
+| `QueueOrderRequest`, `QueueOrderResponse`, `OrderDto`, `UpdateOrderStatusRequest` | `/api/orders` |
+| `DocumentDto`, `UploadDocumentResponse` | `/api/documents` |
+
+Requests are additionally validated with `System.ComponentModel.DataAnnotations` attributes
+(`[Required]`, `[EmailAddress]`, `[MinLength]`, `[RegularExpression]`, `[Range]`), so malformed
+input fails before it reaches the service layer.
+
+#### Global Error Handling
+
+`Middleware/ExceptionHandlingMiddleware.cs` is registered as the outermost middleware and maps
+every escaping exception onto a single RFC 7807 `application/problem+json` contract, so clients
+never receive a raw stack trace:
+
+| Exception | Status | Title |
+| --------- | ------ | ----- |
+| `AppValidationException` | `400` | Validation failed |
+| `ResourceNotFoundException` | `404` | Resource not found |
+| `ConflictException` | `409` | Resource already exists |
+| `UnauthorizedException` | `401` | Authentication failed |
+| `BadHttpRequestException` | `400` | Malformed request |
+| `RequestFailedException` (Azure Storage) | upstream status | Azure Storage request failed |
+| `InvalidOperationException` | `503` | Dependency unavailable |
+| anything else | `500` | An unexpected error occurred (message withheld) |
+
+Every body carries `status`, `title`, `detail`, `instance` and `traceId`. `JwtBearerEvents`
+returns the same shape for `401` and `403`, so authentication failures are indistinguishable in
+form from every other error. Server faults are logged in full but their messages are never echoed
+to the caller.
+
+---
+
 ## Part 1 - Menu CRUD & Staff Documents
 
 ### Part 1 Deliverables
@@ -333,11 +645,67 @@ cd "Cloud Development B CLDV 6212- POE Part 2"
 func start
 ```
 
+### 6. Run the Part 3 API Gateway
+
+The gateway is a separate ASP.NET Core project at the repository root. It reads the same Azurite
+connection string as the Functions project, so start Azurite first (steps 2 or 3 above).
+
+```bash
+cd CoffeeNChill.ApiGateway
+ASPNETCORE_ENVIRONMENT=Development dotnet run
+```
+
+It listens on `http://localhost:5080` by default. Override with `ASPNETCORE_URLS`:
+
+```bash
+ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://localhost:5080 dotnet run
+```
+
+| URL | Purpose |
+|-----|---------|
+| `http://localhost:5080/swagger` | Swagger UI |
+| `http://localhost:5080/swagger/v1/swagger.json` | OpenAPI document |
+| `http://localhost:5080/api/auth/register` | Create an account |
+| `http://localhost:5080/api/auth/login` | Obtain a JWT |
+
+> `ASPNETCORE_ENVIRONMENT=Development` is required for local runs. Outside `Development` the
+> gateway refuses to start if `Jwt:SecretKey` is still the committed development key - set
+> `Jwt__SecretKey` from the environment before deploying.
+
+> If Azurite is started outside Docker, run it with `--skipApiVersionCheck`; otherwise the current
+> Azure SDK clients are rejected with `InvalidHeaderValue`. The `docker-compose.yml` already
+> passes this flag.
+
+---
+
+## Part 3 Changelog
+
+| Member | Contribution |
+|--------|--------------|
+| Keyur Keshav (TM1) | New `CoffeeNChill.ApiGateway` project: `Users` Azure Table entity, BCrypt password hashing, `POST /api/auth/register`, `POST /api/auth/login` issuing a signed JWT with `ClaimTypes.Name`/`Email`/`Role`, `GET /api/auth/me`, Swashbuckle Swagger with XML docs and Bearer scheme, DTO + mapper layer, global problem+json exception middleware, role-based authorization across all endpoints, and the business scenario / access-tier documentation above. |
+| Yadav Iserbelas (TM2) | _Live VPS production deployment and container orchestration - to be documented here._ |
+| Saiyen Subban (TM3) | _Automated CI/CD pipeline - to be documented here._ |
+
 ---
 
 ## Team Member Contributions
 
-### Team Member 1 - Keyur Keshav (Menu CRUD, Queue Producer & Order Validation)
+### Team Member 1 - Keyur Keshav (Authentication Engine, Users Table, API Gateway & Security Policies)
+
+**Part 3**
+
+- Created the `CoffeeNChill.ApiGateway` ASP.NET Core Web API project (`net10.0`) as the single public entry point in front of the Functions host and Azure Storage
+- Designed and implemented the `Users` Azure Table entity: `PartitionKey` = Role (`Admin` / `Staff` / `Customer`), `RowKey` = User Email/Username, with `FullName`, `CreatedDate` and `PasswordHash`
+- Implemented `BCryptPasswordHasher` (BCrypt.Net-Next, work factor 12) so every stored password is a self-salted, deliberately slow hash; `PasswordHash` is excluded from all DTOs by the mappers in `Mapping/Mappers.cs`
+- Built `POST /api/auth/register`: validates the payload, normalises the email, rejects duplicates with `409`, hashes the password and writes the row - returns `201` with the profile and never the hash
+- Built `POST /api/auth/login`: performs a cross-partition lookup on `RowKey`, verifies the BCrypt hash and issues a signed HMAC-SHA256 JWT carrying `ClaimTypes.Name`, `ClaimTypes.Email` and `ClaimTypes.Role`, plus `iss` / `aud` / `exp`
+- Returned an identical `401` for an unknown email and a wrong password so the endpoint cannot be used to enumerate registered accounts
+- Built `GET /api/auth/me` to echo the identity back from the token claims, confirming the three required claims round-trip through `[Authorize]`
+- Configured Swashbuckle with generated XML documentation, a `Bearer` security scheme and response schemas for all 18 operations, plus `AuthorizeCheckOperationFilter` so only the 9 protected operations render a lock in Swagger UI
+- Implemented the DTO layer (`AuthDtos`, `MenuDtos`, `OrderDtos`, `DocumentDtos`) and explicit `Mappers` so storage entities - including `PasswordHash` and `ETag` - are never serialised directly
+- Implemented `Middleware/ExceptionHandlingMiddleware` mapping every exception to one RFC 7807 `application/problem+json` contract, and matching `401`/`403` bodies via `JwtBearerEvents`
+- Applied the brief's role split across all endpoints: `[AllowAnonymous]` for menu reads, order queueing and auth; `[Authorize(Roles = "Admin,Staff")]` for menu writes, documents and order status
+- Documented the business scenario context and the public / authenticated / Admin-Staff access tiers in this README, together with the `Users` schema, JWT claims and the complete gateway endpoint table
 
 **Part 2**
 
@@ -398,7 +766,7 @@ func start
 
 ## Testing with Postman
 
-Import `Docs/CLOUD DEVELOPMENT B CLDV6212-Poe Part 2.postman_collection.json` (Part 2 async order workflow) and `CoffeeNChill-Part1-Complete.postman_collection.json` (Part 1 Menu + Document endpoints). The Part 2 collection ships with these variables pre-filled:
+The Postman collections live in `Docs/` as Postman v3 YAML folders: `CLOUD DEVELOPMENT B CLDV6212 - POE Part 2 (Order Queue)` (Part 2 async order workflow), `CoffeeNChill API - Part 1 Complete Collection` (Part 1 Menu + Document endpoints) and `CLOUD DEVELOPMENT B CLDV6212 - POE Part 3 (API Gateway & JWT Aut)` (Part 3 gateway + JWT auth). Import one into Postman with **Import → Files**. The Part 2 collection ships with these variables pre-filled:
 
 ```
 {{baseUrl}}   = http://localhost:7071/api
@@ -516,4 +884,32 @@ Every request carries automated test assertions. Run request **1** first so the 
 
 ---
 
-*Last Updated: October 2026*
+## References Part 3
+
+- Microsoft. (n.d.). JwtBearer Class. Retrieved from Microsoft Learn: https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.authentication.jwtbearer?view=aspnetcore-10.0
+
+- Microsoft. (n.d.). ASP.NET Core authorization with roles. Retrieved from Microsoft Learn: https://learn.microsoft.com/en-us/aspnet/core/security/authorization/roles?view=aspnetcore-10.0
+
+- Microsoft. (n.d.). ClaimTypes Class. Retrieved from Microsoft Learn: https://learn.microsoft.com/en-us/dotnet/api/system.security.claims.claimtypes?view=net-10.0
+
+- Microsoft. (n.d.). JwtSecurityTokenHandler Class. Retrieved from Microsoft Learn: https://learn.microsoft.com/en-us/dotnet/api/system.identitymodel.tokens.jwt.jwtsecuritytokenhandler?view=msal-14.x
+
+- Microsoft. (n.d.). Swashbuckle.AspNetCore - ASP.NET Core Swagger tooling. Retrieved from GitHub: https://github.com/domaindrivendev/Swashbuckle.AspNetCore
+
+- Microsoft. (n.d.). Use Swagger/OpenAPI with ASP.NET Core. Retrieved from Microsoft Learn: https://learn.microsoft.com/en-us/aspnet/core/tutorials/web-api-help-pages-using-swagger?view=aspnetcore-10.0
+
+- Microsoft. (n.d.). ProblemDetails in ASP.NET Core. Retrieved from Microsoft Learn: https://learn.microsoft.com/en-us/aspnet/core/web-api/handle-errors?view=aspnetcore-10.0
+
+- Microsoft. (n.d.). ITableEntity Interface. Retrieved from Microsoft Learn: https://learn.microsoft.com/en-us/dotnet/api/azure.data.tables.itableentity?view=azure-dotnet
+
+- Microsoft. (n.d.). TableClient.QueryAsync Method. Retrieved from Microsoft Learn: https://learn.microsoft.com/en-us/dotnet/api/azure.data.tables.tableclient.queryasync?view=azure-dotnet
+
+- BCrypt.Net. (n.d.). BCrypt password hashing for .NET. Retrieved from GitHub: https://github.com/BcryptNet/bcrypt.net
+
+- OWASP. (n.d.). Password Storage Cheat Sheet. Retrieved from OWASP: https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html
+
+- Internet Engineering Task Force. (2015). RFC 7519 - JSON Web Token (JWT). Retrieved from IETF: https://datatracker.ietf.org/doc/html/rfc7519
+
+- Internet Engineering Task Force. (2015). RFC 7807 - Problem Details for HTTP APIs. Retrieved from IETF: https://datatracker.ietf.org/doc/html/rfc7807
+
+---
