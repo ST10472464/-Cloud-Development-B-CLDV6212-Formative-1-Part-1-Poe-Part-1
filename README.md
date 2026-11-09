@@ -785,6 +785,8 @@ The Postman collections live in `Docs/` as Postman v3 YAML folders: `CLOUD DEVEL
 
 Every request carries automated test assertions. Run request **1** first so the order exists, then run **5** and **6** a few seconds later to watch the status advance through `Received` -> `Preparing` -> `Ready` -> `Collected`.
 
+Captured request and response screenshots for all 16 Part 3 API gateway requests are stored in `Docs/Postman Collection POE/` as `1postman.png` through `16postman.png`.
+
 ---
 
 ## YouTube Demo
