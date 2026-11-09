@@ -1,0 +1,29 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/register"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fullName": "Jane Smith",
+      "email": "{{customerEmail}}",
+      "password": "{{password}}",
+      "role": "Customer"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 201 Created', function () {
+          pm.response.to.have.status(201);
+      });
+
+      pm.test('Profile returns role Customer', function () {
+          const body = pm.response.json();
+          pm.expect(body.role).to.eql('Customer');
+          pm.expect(body.email).to.eql(pm.collectionVariables.get('customerEmail'));
+          pm.expect(body).to.not.have.property('passwordHash');
+      });
+    language: text/javascript
+order: 2000

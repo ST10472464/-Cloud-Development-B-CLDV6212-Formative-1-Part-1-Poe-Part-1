@@ -1,0 +1,31 @@
+$kind: http-request
+description: A Customer token is a valid token, so this must return 403 rather than 401 - proving the role claim, not the signature, is what is being enforced.
+url: "{{baseUrl}}/api/menu"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{customerToken}}
+body:
+  type: json
+  content: |-
+    {
+      "category": "Coffee",
+      "sku": "RBAC-001",
+      "name": "Should Be Rejected",
+      "description": "Customer write attempt",
+      "price": 10,
+      "isAvailable": true
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 403 Forbidden', function () {
+          pm.response.to.have.status(403);
+      });
+
+      pm.test('Valid token but insufficient role', function () {
+          const body = pm.response.json();
+          pm.expect(body.title).to.eql('Insufficient role');
+      });
+    language: text/javascript
+order: 11000

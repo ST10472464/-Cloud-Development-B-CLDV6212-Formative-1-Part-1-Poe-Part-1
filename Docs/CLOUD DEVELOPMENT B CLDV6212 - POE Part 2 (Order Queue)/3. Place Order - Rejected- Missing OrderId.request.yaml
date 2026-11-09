@@ -1,0 +1,31 @@
+$kind: http-request
+name: "3. Place Order - Rejected: Missing OrderId"
+url: "{{baseUrl}}/orders/queue"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: "{\r
+
+    \  \"CustomerName\": \"Thabo Nkosi\",\r
+
+    \  \"SelectedItemSKUs\": [\"PAS-104\"],\r
+
+    \  \"TotalPrice\": 32.50,\r
+
+    \  \"OrderTimestamp\": \"2026-10-12T10:45:00Z\"\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 400 Bad Request', function () {
+          pm.response.to.have.status(400);
+      });
+
+      pm.test('Validation rejects a missing OrderId', function () {
+          pm.expect(pm.response.text()).to.include('OrderId');
+      });
+    language: text/javascript
+order: 3000

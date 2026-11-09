@@ -1,0 +1,23 @@
+$kind: http-request
+description: Staff documents are internal canteen material, so they sit on the Admin/Staff tier even for reads.
+url: "{{baseUrl}}/api/documents"
+method: GET
+headers:
+  Authorization: Bearer {{token}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200 OK', function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test('Returns an array of document metadata', function () {
+          const body = pm.response.json();
+          pm.expect(body).to.be.an('array');
+          body.forEach(function (doc) {
+              pm.expect(doc).to.have.property('name');
+              pm.expect(doc).to.have.property('size');
+          });
+      });
+    language: text/javascript
+order: 15000

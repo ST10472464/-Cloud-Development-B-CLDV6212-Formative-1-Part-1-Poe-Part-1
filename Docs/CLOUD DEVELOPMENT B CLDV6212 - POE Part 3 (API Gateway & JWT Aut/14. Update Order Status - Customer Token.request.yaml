@@ -1,0 +1,28 @@
+$kind: http-request
+description: A student must not be able to mark their own order Collected - that is a stock and revenue action reserved for Admin and Staff.
+url: "{{baseUrl}}/api/orders/status"
+method: PUT
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{customerToken}}
+body:
+  type: json
+  content: |-
+    {
+      "orderDate": "2026-10-12",
+      "orderId": "ORD-GW-2026-01",
+      "status": "Collected"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 403 Forbidden', function () {
+          pm.response.to.have.status(403);
+      });
+
+      pm.test('Customer cannot advance the order lifecycle', function () {
+          const body = pm.response.json();
+          pm.expect(body.title).to.eql('Insufficient role');
+      });
+    language: text/javascript
+order: 14000

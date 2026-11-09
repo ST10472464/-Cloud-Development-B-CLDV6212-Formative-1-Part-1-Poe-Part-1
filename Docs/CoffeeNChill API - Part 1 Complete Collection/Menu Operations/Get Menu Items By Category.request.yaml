@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/menu/category/Hot Drinks"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status is 200 OK', function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test('All items match category', function () {
+          var json = pm.response.json();
+          json.forEach(function(item) {
+              pm.expect(item.PartitionKey).to.eql('Hot Drinks');
+          });
+      });
+    language: text/javascript
+order: 5000

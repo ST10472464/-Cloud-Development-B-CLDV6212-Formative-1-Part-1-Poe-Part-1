@@ -1,0 +1,17 @@
+$kind: http-request
+description: "Reading the menu is on the public tier: a student must never be blocked by an authentication prompt."
+url: "{{baseUrl}}/api/menu"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200 OK', function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test('Menu is readable anonymously', function () {
+          const body = pm.response.json();
+          pm.expect(body).to.be.an('array');
+      });
+    language: text/javascript
+order: 9000

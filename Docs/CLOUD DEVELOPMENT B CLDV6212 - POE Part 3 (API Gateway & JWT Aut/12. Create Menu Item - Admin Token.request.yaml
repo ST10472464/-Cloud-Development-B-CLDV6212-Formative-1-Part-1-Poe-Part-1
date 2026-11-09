@@ -1,0 +1,41 @@
+$kind: http-request
+description: The same payload that returned 401 and 403 above succeeds with an Admin token.
+url: "{{baseUrl}}/api/menu"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+body:
+  type: json
+  content: |-
+    {
+      "category": "Coffee",
+      "sku": "GW-LATTE-01",
+      "name": "Gateway Latte",
+      "description": "Created through the Part 3 gateway by an Admin",
+      "price": 34.5,
+      "isAvailable": true
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 201 Created', function () {
+          pm.response.to.have.status(201);
+      });
+
+      pm.test('Item was created with the supplied values', function () {
+          const body = pm.response.json();
+          pm.expect(body.sku).to.eql('GW-LATTE-01');
+          pm.expect(body.category).to.eql('Coffee');
+          pm.expect(body.price).to.eql(34.5);
+          pm.expect(body.isAvailable).to.eql(true);
+      });
+
+      pm.test('Entity internals are not exposed', function () {
+          const body = pm.response.json();
+          pm.expect(body).to.not.have.property('etag');
+          pm.expect(body).to.not.have.property('timestamp');
+          pm.expect(body).to.not.have.property('partitionKey');
+      });
+    language: text/javascript
+order: 12000

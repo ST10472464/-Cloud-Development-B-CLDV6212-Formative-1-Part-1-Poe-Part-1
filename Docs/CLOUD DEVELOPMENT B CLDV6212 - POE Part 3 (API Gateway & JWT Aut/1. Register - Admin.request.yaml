@@ -1,0 +1,36 @@
+$kind: http-request
+description: Creates an Admin account. The password is BCrypt-hashed before it reaches the Users table, and the response deliberately omits the hash.
+url: "{{baseUrl}}/api/auth/register"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fullName": "Keyur Keshav",
+      "email": "{{adminEmail}}",
+      "password": "{{password}}",
+      "role": "Admin"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 201 Created', function () {
+          pm.response.to.have.status(201);
+      });
+
+      pm.test('Profile returns role Admin and no password hash', function () {
+          const body = pm.response.json();
+          pm.expect(body.role).to.eql('Admin');
+          pm.expect(body.email).to.eql(pm.collectionVariables.get('adminEmail'));
+          pm.expect(body).to.not.have.property('passwordHash');
+          pm.expect(body).to.not.have.property('password');
+      });
+
+      pm.test('CreatedDate is present', function () {
+          const body = pm.response.json();
+          pm.expect(body.createdDate).to.be.a('string');
+      });
+    language: text/javascript
+order: 1000

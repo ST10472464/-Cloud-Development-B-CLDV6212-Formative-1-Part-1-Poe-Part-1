@@ -1,0 +1,22 @@
+$kind: http-request
+description: Confirms the Bearer token is accepted and that ClaimTypes.Name / Email / Role resolve back into the principal.
+url: "{{baseUrl}}/api/auth/me"
+method: GET
+headers:
+  Authorization: Bearer {{token}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200 OK', function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test('Identity round-trips from the token claims', function () {
+          const body = pm.response.json();
+          pm.expect(body.email).to.eql(pm.collectionVariables.get('adminEmail'));
+          pm.expect(body.role).to.eql('Admin');
+          pm.expect(body.fullName).to.eql('Keyur Keshav');
+          pm.expect(body).to.not.have.property('passwordHash');
+      });
+    language: text/javascript
+order: 7000

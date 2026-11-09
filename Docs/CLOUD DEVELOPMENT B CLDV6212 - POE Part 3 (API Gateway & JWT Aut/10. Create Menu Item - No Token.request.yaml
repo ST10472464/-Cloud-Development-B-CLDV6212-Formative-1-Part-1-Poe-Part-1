@@ -1,0 +1,30 @@
+$kind: http-request
+description: Writing to the menu is Admin/Staff only, so an anonymous caller must be refused before the payload is even considered.
+url: "{{baseUrl}}/api/menu"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "category": "Coffee",
+      "sku": "RBAC-001",
+      "name": "Should Be Rejected",
+      "description": "Anonymous write attempt",
+      "price": 10,
+      "isAvailable": true
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 401 Unauthorized', function () {
+          pm.response.to.have.status(401);
+      });
+
+      pm.test('Problem detail explains how to authenticate', function () {
+          const body = pm.response.json();
+          pm.expect(body.detail).to.include('/api/auth/login');
+      });
+    language: text/javascript
+order: 10000

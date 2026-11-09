@@ -1,0 +1,53 @@
+$kind: http-request
+description: Validates the credentials against the Users table and writes the issued JWT into the collection variable {{token}} so later requests can send it as a Bearer header.
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{adminEmail}}",
+      "password": "{{password}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200 OK', function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test('A Bearer token was issued for the Admin', function () {
+          const body = pm.response.json();
+          pm.expect(body.tokenType).to.eql('Bearer');
+          pm.expect(body.role).to.eql('Admin');
+          pm.expect(body.token).to.be.a('string').and.to.have.length.above(50);
+          pm.collectionVariables.set('token', body.token);
+      });
+
+      pm.test('JWT carries ClaimTypes.Name, Email and Role', function () {
+          const body = pm.response.json();
+          const parts = body.token.split('.');
+          const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+          const padded = payload + '='.repeat((4 - (payload.length % 4)) % 4);
+          const claims = JSON.parse(atob(padded));
+
+          pm.expect(claims['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name']).to.eql('Keyur Keshav');
+          pm.expect(claims['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress']).to.eql(pm.collectionVariables.get('adminEmail'));
+          pm.expect(claims['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']).to.eql('Admin');
+      });
+
+      pm.test('JWT is signed, dated and carries no password claim', function () {
+          const body = pm.response.json();
+          const payload = body.token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+          const padded = payload + '='.repeat((4 - (payload.length % 4)) % 4);
+          const claims = JSON.parse(atob(padded));
+
+          pm.expect(claims.iss).to.eql('CoffeeNChill');
+          pm.expect(claims.aud).to.eql('CoffeeNChill Clients');
+          pm.expect(claims.exp).to.be.a('number').and.to.be.above(Math.floor(Date.now() / 1000));
+          pm.expect(Object.keys(claims).join(' ')).to.not.match(/password|hash/i);
+      });
+    language: text/javascript
+order: 4000

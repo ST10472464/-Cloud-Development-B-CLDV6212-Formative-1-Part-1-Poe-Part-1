@@ -1,0 +1,6 @@
+$kind: collection
+description: "Part 2 order queue tests: places orders on order-processing-queue via POST /api/orders/queue, validates order field rejection rules, and verifies status updates in the Orders Azure Table."
+variables:
+  baseUrl: http://localhost:7071/api
+  orderDate: 2026-10-12
+  orderId: ORD-2026-8801

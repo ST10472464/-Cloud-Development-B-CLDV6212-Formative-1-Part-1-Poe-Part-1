@@ -1,0 +1,4 @@
+$kind: collection
+description: Complete API collection for CoffeeNChill Part 1 - Menu CRUD + Document Management
+variables:
+  baseUrl: http://localhost:7058/api

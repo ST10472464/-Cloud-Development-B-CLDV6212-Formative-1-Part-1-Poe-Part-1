@@ -1,0 +1,27 @@
+$kind: http-request
+description: Saves the Customer JWT into {{customerToken}} so requests 11 and 14 can prove a Customer token is refused on Admin/Staff endpoints.
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{customerEmail}}",
+      "password": "{{password}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200 OK', function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test('A Bearer token was issued for the Customer', function () {
+          const body = pm.response.json();
+          pm.expect(body.role).to.eql('Customer');
+          pm.collectionVariables.set('customerToken', body.token);
+      });
+    language: text/javascript
+order: 5000

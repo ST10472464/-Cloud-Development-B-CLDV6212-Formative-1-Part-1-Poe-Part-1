@@ -1,0 +1,19 @@
+$kind: collection
+name: CLOUD DEVELOPMENT B CLDV6212 - POE Part 3 (API Gateway & JWT Auth)
+description: |-
+  Part 3 API gateway tests covering the authentication engine and role-based access control.
+
+  Run the requests in order:
+
+  1. Requests 1-2 register the Admin and Customer accounts.
+  2. Requests 4-5 log in and write the issued JWTs into the collection variables {{token}} (Admin) and {{customerToken}} (Customer).
+  3. Requests 7-16 then exercise the public vs protected split, asserting 401 when no token is sent and 403 when a Customer token is used on an Admin/Staff endpoint.
+
+  Every request carries automated test assertions. The gateway must be running on {{baseUrl}} with Azurite started using --skipApiVersionCheck.
+variables:
+  baseUrl: http://localhost:5080
+  adminEmail: keyur@coffeenchill.ac.za
+  customerEmail: jane@student.ac.za
+  password: Str0ngPass!
+  token: ""
+  customerToken: ""

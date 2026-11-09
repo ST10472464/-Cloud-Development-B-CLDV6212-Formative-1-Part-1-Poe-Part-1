@@ -1,0 +1,31 @@
+$kind: http-request
+name: "3. Register - Rejected: Duplicate Email"
+description: Registering an address that already exists must be rejected rather than silently overwriting the stored BCrypt hash.
+url: "{{baseUrl}}/api/auth/register"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fullName": "Duplicate Account",
+      "email": "{{customerEmail}}",
+      "password": "{{password}}",
+      "role": "Customer"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 409 Conflict', function () {
+          pm.response.to.have.status(409);
+      });
+
+      pm.test('Returns a problem+json body', function () {
+          const body = pm.response.json();
+          pm.expect(body.title).to.eql('Resource already exists');
+          pm.expect(body).to.have.property('status');
+          pm.expect(body).to.have.property('traceId');
+      });
+    language: text/javascript
+order: 3000

@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/menu"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "PartitionKey": "Pastries",
+      "RowKey": "PAS-104",
+      "Name": "Croissant",
+      "Description": "Buttery pastry",
+      "Price": 18.00,
+      "IsAvailable": true
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status is 201 Created', function () {
+          pm.response.to.have.status(201);
+      });
+    language: text/javascript
+order: 3000

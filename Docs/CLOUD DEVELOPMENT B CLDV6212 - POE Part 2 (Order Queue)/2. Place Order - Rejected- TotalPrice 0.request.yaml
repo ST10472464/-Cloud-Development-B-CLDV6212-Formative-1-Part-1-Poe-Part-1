@@ -1,0 +1,33 @@
+$kind: http-request
+name: "2. Place Order - Rejected: TotalPrice 0"
+url: "{{baseUrl}}/orders/queue"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: "{\r
+
+    \  \"OrderId\": \"ORD-2026-8898\",\r
+
+    \  \"CustomerName\": \"Carol White\",\r
+
+    \  \"SelectedItemSKUs\": [\"COF-001\"],\r
+
+    \  \"TotalPrice\": 0,\r
+
+    \  \"OrderTimestamp\": \"2026-10-12T10:30:00Z\"\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 400 Bad Request', function () {
+          pm.response.to.have.status(400);
+      });
+
+      pm.test('Validation rejects a non-positive TotalPrice', function () {
+          pm.expect(pm.response.text()).to.include('TotalPrice');
+      });
+    language: text/javascript
+order: 2000

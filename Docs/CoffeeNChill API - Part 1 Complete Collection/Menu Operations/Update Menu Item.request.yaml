@@ -1,0 +1,27 @@
+$kind: http-request
+url: "{{baseUrl}}/menu/Hot Drinks/COF-001"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "Name": "Espresso",
+      "Description": "Strong Italian coffee shot",
+      "Price": 30.00,
+      "IsAvailable": true
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status is 200 OK', function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test('Price was updated', function () {
+          var json = pm.response.json();
+          pm.expect(json.Price).to.eql(30.00);
+      });
+    language: text/javascript
+order: 6000

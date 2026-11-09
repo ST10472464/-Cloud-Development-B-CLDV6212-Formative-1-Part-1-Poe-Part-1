@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/api/documents"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 401 Unauthorized', function () {
+          pm.response.to.have.status(401);
+      });
+
+      pm.test('Document list is not leaked anonymously', function () {
+          const body = pm.response.json();
+          pm.expect(body).to.not.be.an('array');
+          pm.expect(body.title).to.eql('Authentication required');
+      });
+    language: text/javascript
+order: 16000

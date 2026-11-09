@@ -1,0 +1,30 @@
+$kind: http-request
+description: Order placement stays on the public tier so the break-time queue never blocks on authentication. The gateway writes the same Base64 JSON message to order-processing-queue that the Part 2 producer did.
+url: "{{baseUrl}}/api/orders/queue"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "orderId": "ORD-GW-2026-01",
+      "customerName": "Jane Smith",
+      "selectedItemSKUs": ["COF-001", "PAS-104"],
+      "totalPrice": 65.00,
+      "orderTimestamp": "2026-10-12T10:15:00Z"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200 OK', function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test('Order was queued successfully', function () {
+          const body = pm.response.json();
+          pm.expect(body.message).to.eql('Order queued successfully');
+          pm.expect(body.orderId).to.eql('ORD-GW-2026-01');
+      });
+    language: text/javascript
+order: 13000

@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/documents/upload/cleaning-manual.txt"
+method: POST
+headers:
+  Content-Type: text/plain
+body:
+  type: text
+  content: "Equipment Cleaning Manual: Clean espresso machine daily with backflush detergent. Wsteam wand after each use."
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status is 201 Created', function () {
+          pm.response.to.have.status(201);
+      });
+
+      pm.test('Correct file name returned', function () {
+          var json = pm.response.json();
+          pm.expect(json.fileName).to.eql('cleaning-manual.txt');
+      });
+    language: text/javascript
+order: 2000

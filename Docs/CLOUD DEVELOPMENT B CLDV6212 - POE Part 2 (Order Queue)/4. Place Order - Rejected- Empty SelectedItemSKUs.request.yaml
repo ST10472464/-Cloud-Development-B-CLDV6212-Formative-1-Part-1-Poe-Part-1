@@ -1,0 +1,33 @@
+$kind: http-request
+name: "4. Place Order - Rejected: Empty SelectedItemSKUs"
+url: "{{baseUrl}}/orders/queue"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: "{\r
+
+    \  \"OrderId\": \"ORD-2026-8902\",\r
+
+    \  \"CustomerName\": \"Ayesha Patel\",\r
+
+    \  \"SelectedItemSKUs\": [],\r
+
+    \  \"TotalPrice\": 40.00,\r
+
+    \  \"OrderTimestamp\": \"2026-10-12T11:00:00Z\"\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 400 Bad Request', function () {
+          pm.response.to.have.status(400);
+      });
+
+      pm.test('Validation rejects an empty SKU list', function () {
+          pm.expect(pm.response.text()).to.include('SKU');
+      });
+    language: text/javascript
+order: 4000

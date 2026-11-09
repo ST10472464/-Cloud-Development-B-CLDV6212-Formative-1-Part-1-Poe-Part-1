@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/documents/download/cleaning-manual.txt"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status is 200 OK', function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test('Content-Type header present', function () {
+          pm.response.to.have.header('Content-Type');
+      });
+    language: text/javascript
+order: 4000
