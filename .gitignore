@@ -5,3 +5,7 @@ obj/
 *.user
 *.log
 func.log
+
+# Postman local workspace state (not part of the collections in Docs/)
+.postman/
+postman/
