@@ -53,7 +53,18 @@ namespace CoffeeNChill.Functions
                     OrderTimestamp = order.OrderTimestamp == default ? DateTime.UtcNow : order.OrderTimestamp
                 };
 
-                await tableClient.AddEntityAsync(entity);
+                try
+                {
+                    await tableClient.AddEntityAsync(entity);
+                }
+                catch (Azure.RequestFailedException ex) when (ex.Status == 409)
+                {
+                    // Azure Queue Storage delivers at-least-once, so a duplicate message is expected.
+                    // The order is already recorded - skip it instead of failing to the poison queue.
+                    _logger.LogInformation("Duplicate queue message for {OrderId}; already recorded - ignoring.", order.OrderId);
+                    return;
+                }
+
                 _logger.LogInformation("Order {OrderId} status: Received.", order.OrderId);
 
                 await AdvanceStatusAsync(tableClient, entity, "Preparing", 2000, order.OrderId);
