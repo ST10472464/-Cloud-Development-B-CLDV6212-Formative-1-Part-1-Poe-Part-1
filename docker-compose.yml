@@ -1,3 +1,5 @@
+name: coffeenchill
+
 services:
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite:3.34.0
@@ -47,6 +49,33 @@ services:
     depends_on:
       azurite:
         condition: service_healthy
+    networks:
+      - coffeenchill-network
+    restart: unless-stopped
+
+  apigateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    image: st10472501/coffeenchill-apigateway:v3.0
+    container_name: coffeenchill-apigateway
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+      - AzureStorage__ConnectionString=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1
+      - AzureWebJobsStorage=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1
+      - AzureFunctions__BaseUrl=http://functions:80
+      - Jwt__Issuer=CoffeeNChill
+      - Jwt__Audience=CoffeeNChill Clients
+      - Jwt__SecretKey=CoffeeNChill-VPS-Deployment-Secret-Key-Change-For-Production-2026-0123456789
+      - Jwt__ExpiryMinutes=60
+    depends_on:
+      azurite:
+        condition: service_healthy
+      functions:
+        condition: service_started
     networks:
       - coffeenchill-network
     restart: unless-stopped

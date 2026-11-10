@@ -678,12 +678,60 @@ ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://localhost:5080 dotnet 
 
 ---
 
+## Part 3 - Live Production VPS Deployment
+
+The complete application stack (API Gateway, Functions Host, and Azurite Storage Emulator) is deployed to a live Linux VPS (AWS EC2 instance) using multi-container Docker Compose.
+
+### Live Production Endpoints
+
+| Resource | Public URL | Description |
+| :--- | :--- | :--- |
+| **Interactive Swagger UI** | `http://13.60.234.91:5000/swagger` | Full OpenAPI documentation with XML descriptions and JWT Bearer authorization |
+| **OpenAPI Specification** | `http://13.60.234.91:5000/swagger/v1/swagger.json` | JSON schema for all endpoints, request bodies, and responses |
+| **Public Menu Endpoint** | `http://13.60.234.91:5000/api/menu` | Public anonymous read access to menu catalog |
+| **Order Queueing** | `http://13.60.234.91:5000/api/orders/queue` | Public anonymous order placement pushing to Azure Storage Queue |
+| **Auth - Registration** | `http://13.60.234.91:5000/api/auth/register` | Provisions user records with BCrypt hashing in `Users` Azure Table |
+| **Auth - Login** | `http://13.60.234.91:5000/api/auth/login` | Validates credentials and returns signed JWT Bearer token |
+
+### Production Stack Orchestration
+
+The VPS deployment runs three containerized services defined in [`docker-compose.yml`](docker-compose.yml) connected via an isolated bridge network (`coffeenchill-network`):
+
+1. **`coffeenchill-apigateway`** (`st10472501/coffeenchill-apigateway:v3.0`):
+   - Multi-stage build on .NET 10 ASP.NET runtime.
+   - Bound to public host port `5000:5000`.
+   - Production environment configured with JWT secret, storage connection strings, and Functions proxy URLs.
+2. **`coffeenchill-functions`** (`st10472501/coffeenchill-functions:v2.0`):
+   - Azure Functions isolated worker host mapped to port `7071:80`.
+   - Listens on `order-processing-queue` and simulates order lifecycle transitions into the `Orders` table.
+3. **`coffeenchill-azurite`** (`mcr.microsoft.com/azure-storage/azurite:3.34.0`):
+   - Internal storage emulator providing Blob (`10000`), Queue (`10001`), and Table (`10002`) services with healthchecks.
+
+### VPS Deployment Instructions
+
+To spin up or restart the stack on the VPS host:
+
+```bash
+# Clone the repository and navigate into it
+cd ~/-Cloud-Development-B-CLDV6212-Formative-1-Part-1-Poe-Part-1
+
+# Launch all services in detached mode
+sudo docker compose up -d
+
+# Verify container health and running status
+sudo docker compose ps
+```
+
+> **AWS EC2 Security Group Notice:** Ensure the EC2 instance's security group allows **Inbound Custom TCP traffic on port 5000** (from `0.0.0.0/0`) so that external clients and the grading team can access the Swagger UI directly.
+
+---
+
 ## Part 3 Changelog
 
 | Member | Contribution |
 |--------|--------------|
 | Keyur Keshav (TM1) | New `CoffeeNChill.ApiGateway` project: `Users` Azure Table entity, BCrypt password hashing, `POST /api/auth/register`, `POST /api/auth/login` issuing a signed JWT with `ClaimTypes.Name`/`Email`/`Role`, `GET /api/auth/me`, Swashbuckle Swagger with XML docs and Bearer scheme, DTO + mapper layer, global problem+json exception middleware, role-based authorization across all endpoints, and the business scenario / access-tier documentation above. |
-| Yadav Iserbelas (TM2) | _Live VPS production deployment and container orchestration - to be documented here._ |
+| Yadav Iserbelas (TM2) | Containerized `CoffeeNChill.ApiGateway` via multi-stage `Dockerfile.gateway`, updated root `docker-compose.yml` to orchestrate gateway + functions + Azurite on an isolated bridge network, provisioned AWS EC2 Linux VPS host, configured host memory management and swap space, deployed the full stack using `docker compose up -d`, bound public port 5000 for live Swagger access, and verified end-to-end integration across Gateway -> Azurite -> Functions. |
 | Saiyen Subban (TM3) | _Automated CI/CD pipeline - to be documented here._ |
 
 ---
@@ -726,7 +774,16 @@ ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://localhost:5080 dotnet 
 - Added input validation and proper HTTP status codes (`400` Bad Request, `404` Not Found, `409` Conflict)
 - Tested and verified all Menu CRUD endpoints (POST, GET, PUT, DELETE) using Postman against the local Azurite storage emulator running in Docker
 
-### Team Member 2 - Yadav Iserbelas (Blob Documents, Queue Trigger & Order Lifecycle)
+### Team Member 2 - Yadav Iserbelas (VPS Deployment, Container Orchestration & Order Lifecycle)
+
+**Part 3**
+
+- Containerized the `CoffeeNChill.ApiGateway` project using a multi-stage `Dockerfile.gateway` on the .NET 10 ASP.NET runtime with optimized publish layers
+- Updated the root `docker-compose.yml` to orchestrate the entire multi-container production stack (`coffeenchill-apigateway`, `coffeenchill-functions`, `coffeenchill-azurite`) connected through the internal `coffeenchill-network` bridge
+- Configured environment variables for production hosting, including `ASPNETCORE_URLS=http://+:5000`, `ASPNETCORE_ENVIRONMENT=Production`, connection strings pointing to Azurite services, and Functions internal base URLs
+- Provisioned the AWS EC2 Linux VPS host (Ubuntu 24.04 LTS), installed Docker Engine and Docker Compose plugin, and configured a 2GB persistent swapfile to ensure stable memory utilization and prevent OOM terminates
+- Deployed the live stack using `docker compose up -d` with public port binding on `5000:5000`
+- Verified live availability of the Swagger UI (`http://13.60.234.91:5000/swagger`) and performed end-to-end smoke tests verifying registration, login, JWT token verification, RBAC rules, and asynchronous queue processing
 
 **Part 2**
 
@@ -792,7 +849,8 @@ Captured request and response screenshots for all 16 Part 3 API gateway requests
 ## YouTube Demo
 
 - Part 1: https://youtu.be/G6AYkKV_1hI
-- Part 2 (compose up + queue workflow): _link to be added after the Part 2 walkthrough is recorded_
+- Part 2 (compose up + queue workflow): https://youtu.be/Gqj6Svw36YA
+- Part 3 (Live VPS Deployment, Swagger, JWT Auth & Postman Walkthrough): _link to be added after the Part 3 walkthrough is recorded_
 
 ---
 
@@ -915,3 +973,14 @@ Captured request and response screenshots for all 16 Part 3 API gateway requests
 - Internet Engineering Task Force. (2015). RFC 7807 - Problem Details for HTTP APIs. Retrieved from IETF: https://datatracker.ietf.org/doc/html/rfc7807
 
 ---
+
+## Acknowledgements & Use of AI Assistance
+
+In line with institutional guidelines on responsible technology use, AI tools (including OpenCode and Antigravity) were used selectively during the completion of this project to assist with:
+- Troubleshooting Linux host configuration and memory management (configuring swap space on the VPS instance)
+- Refining Docker Compose service definitions and multi-stage Dockerfile syntax
+- Generating automated smoke test scripts for verifying end-to-end API workflows
+- Assisting with markdown layout and formatting
+
+All backend architecture, endpoint implementations, security policies, data models, and final deployments were reviewed, tested, and verified directly by the team.
+

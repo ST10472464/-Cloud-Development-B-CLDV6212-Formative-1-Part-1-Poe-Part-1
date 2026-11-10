@@ -1,0 +1,17 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY ["CoffeeNChill.ApiGateway/CoffeeNChill.ApiGateway.csproj", "CoffeeNChill.ApiGateway/"]
+RUN dotnet restore "CoffeeNChill.ApiGateway/CoffeeNChill.ApiGateway.csproj"
+
+COPY . .
+WORKDIR "/src/CoffeeNChill.ApiGateway"
+RUN dotnet publish "CoffeeNChill.ApiGateway.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+WORKDIR /app
+EXPOSE 5000
+ENV ASPNETCORE_URLS=http://+:5000 \
+    ASPNETCORE_ENVIRONMENT=Production
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "CoffeeNChill.ApiGateway.dll"]

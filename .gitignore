@@ -9,3 +9,7 @@ func.log
 # Postman local workspace state (not part of the collections in Docs/)
 .postman/
 postman/
+
+# Local OpenCode task notes (do not commit to repo)
+OPENCODE_TODO*.md
+
