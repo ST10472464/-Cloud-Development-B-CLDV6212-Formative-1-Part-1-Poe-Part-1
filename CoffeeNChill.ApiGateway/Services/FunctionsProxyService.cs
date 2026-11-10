@@ -21,16 +21,16 @@ public sealed class FunctionsProxyService : IFunctionsProxyService
 {
     public const string HttpClientName = "functions";
 
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
     private readonly ILogger<FunctionsProxyService> _logger;
 
     public FunctionsProxyService(
-        IHttpClientFactory httpClientFactory,
+        HttpClient httpClient,
         IConfiguration configuration,
         ILogger<FunctionsProxyService> logger)
     {
-        _httpClientFactory = httpClientFactory;
+        _httpClient = httpClient;
         _configuration = configuration;
         _logger = logger;
     }
@@ -64,12 +64,10 @@ public sealed class FunctionsProxyService : IFunctionsProxyService
         if (!string.IsNullOrWhiteSpace(request.Authorization))
             message.Headers.TryAddWithoutValidation("Authorization", request.Authorization);
 
-        var client = _httpClientFactory.CreateClient(HttpClientName);
-
         try
         {
             // ResponseHeadersRead hands the stream back instead of buffering it, and the message is deliberately not disposed here: the caller still has to read the body.
-            return await client.SendAsync(
+            return await _httpClient.SendAsync(
                 message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         }
         catch (HttpRequestException ex)
