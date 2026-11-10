@@ -1,0 +1,90 @@
+{
+	"info": {
+		"name": "CoffeeNChill - Team Member 2 - Document API",
+		"description": "Staff document management endpoints: Upload, List, Download",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:7071/api"
+		}
+	],
+	"item": [
+		{
+			"name": "Upload Staff Document (multipart)",
+			"request": {
+				"method": "POST",
+				"url": {
+					"raw": "{{baseUrl}}/documents/upload",
+					"host": ["{{baseUrl}}"],
+					"path": ["documents", "upload"]
+				},
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": "C:\\Users\\emeris\\AppData\\Local\\Temp\\cldv-doc-tests\\barista-recipe-sheet.pdf"
+						}
+					]
+				}
+			}
+		},
+		{
+			"name": "Upload with Custom File Name",
+			"request": {
+				"method": "POST",
+				"url": {
+					"raw": "{{baseUrl}}/documents/upload/staff-handbook.txt",
+					"host": ["{{baseUrl}}"],
+					"path": ["documents", "upload", "staff-handbook.txt"]
+				},
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "text/plain"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "CoffeeNChill Staff Handbook v2.0\nOperational guidelines for all baristas and kitchen staff.\nHealth and safety policy: always wash hands before handling food."
+				}
+			}
+		},
+		{
+			"name": "List All Documents",
+			"request": {
+				"method": "GET",
+				"url": {
+					"raw": "{{baseUrl}}/documents",
+					"host": ["{{baseUrl}}"],
+					"path": ["documents"]
+				}
+			}
+		},
+		{
+			"name": "Download Document (barista-recipe-sheet.pdf)",
+			"request": {
+				"method": "GET",
+				"url": {
+					"raw": "{{baseUrl}}/documents/download/barista-recipe-sheet.pdf",
+					"host": ["{{baseUrl}}"],
+					"path": ["documents", "download", "barista-recipe-sheet.pdf"]
+				}
+			}
+		},
+		{
+			"name": "Download Document (404 - Not Found)",
+			"request": {
+				"method": "GET",
+				"url": {
+					"raw": "{{baseUrl}}/documents/download/not-found.pdf",
+					"host": ["{{baseUrl}}"],
+					"path": ["documents", "download", "not-found.pdf"]
+				}
+			}
+		}
+	]
+}
