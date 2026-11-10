@@ -850,7 +850,7 @@ Captured request and response screenshots for all 16 Part 3 API gateway requests
 
 - Part 1: https://youtu.be/G6AYkKV_1hI
 - Part 2 (compose up + queue workflow): https://youtu.be/Gqj6Svw36YA
-- Part 3 (Live VPS Deployment, Swagger, JWT Auth & Postman Walkthrough): _link to be added after the Part 3 walkthrough is recorded_
+- Part 3 https://youtu.be/D-UpEG2eZkg
 
 ---
 
