@@ -823,7 +823,7 @@ sudo docker compose ps
 
 ## Testing with Postman
 
-The Postman collections live in `Docs/` as Postman v3 YAML folders: `CLOUD DEVELOPMENT B CLDV6212 - POE Part 2 (Order Queue)` (Part 2 async order workflow), `CoffeeNChill API - Part 1 Complete Collection` (Part 1 Menu + Document endpoints) and `CLOUD DEVELOPMENT B CLDV6212 - POE Part 3 (API Gateway & JWT Aut)` (Part 3 gateway + JWT auth). Import one into Postman with **Import → Files**. The Part 2 collection ships with these variables pre-filled:
+The Postman collections live in `Docs/` as Postman v3 YAML folders: `CLOUD DEVELOPMENT B CLDV6212 - POE Part 2 (Order Queue)` (Part 2 async order workflow), `CoffeeNChill API - Part 1 Complete Collection` (Part 1 Menu + Document endpoints) and `CLOUD DEVELOPMENT B CLDV6212 - POE Part 3 (API Gateway & JWT Aut)` (Part 3 gateway + JWT auth). Import one into Postman with **Import → Files**. The Part 1 collection is also exported as a single `.json` file: `Docs/CoffeeNChill-Part1-Complete.postman_collection.json`. The Part 2 collection ships with these variables pre-filled:
 
 ```
 {{baseUrl}}   = http://localhost:7071/api
